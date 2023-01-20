@@ -1,0 +1,58 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Introduction 
+
+Goal: Build a Regression Model to predict vehicle MSRP based on various predictors. 
+Dataset: Cars dataset with features including make, model, year, engine, and other properties of the car used to predict its price.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load in Data
+```{r}
+library(dplyr)
+
+df = read.csv("C:/Users/caroc/OneDrive/Desktop/DS6372_Project1/data1.csv", header=TRUE, stringsAsFactors=TRUE)
+head(df)
+glimpse(df)
+```
+
+### Look at missing values
+```{r}
+colSums(is.na(df))
+df[duplicated(df),]
+```
+- It looks like Engine.HP has 69 NAs, Engine.Cylinders has 30 NAs, Number.of.Doors has 6NAs. How do we want to deal with missing data? 
+- Also looks like there are duplicate rows. Explore further to see if cam be removed. 
+
+### Unique values for categorical variables
+```{r}
+library(tidyr)
+df %>% select_if(is.factor) %>%
+  summarise_all(~n_distinct(.)) %>% 
+  pivot_longer(., everything(), names_to = "columns", values_to = "count_unique_values") %>%
+  arrange(desc(count_unique_values))
+```
+### Explore Structure of Data Set 
+```{r}
+names(df)
+dim(df)
+str(df)
+summary(df)
+```
+## Inspect Categorical Levels
+```{r}
+library(inspectdf)
+library(dplyr)
+df_cat <- df %>% inspect_cat()
+head(df_cat)
+df_cat$levels
+```
+- Might need to reformat some of the strings. 
+- Factors as numeric? might not need to do that for these models. 
+
+
