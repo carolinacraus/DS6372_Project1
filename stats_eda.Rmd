@@ -123,51 +123,50 @@ viz - of some intuitive relationships
 should be noted that since we are dealing with MSRP we may need to scale the data so that it can be visualized properly.
 Numerical data
 ```{r}
-library(ggplot2)
 glimpse(car_data)
 # numerical 
 par(mfrow = c(2,2))
 # city mpg
-plot(log(car_data$city.mpg),log(car_data$MSRP))
+plot(log(car_data$city.mpg),log(car_data$MSRP), main = "city mpg")
 #hwy mpg
-plot(log(car_data$highway.MPG), log(car_data$MSRP))
+plot(log(car_data$highway.MPG), log(car_data$MSRP), main = "hwy mpg")
 # popularity
-plot(log(car_data$Popularity), log(car_data$MSRP)) # this looks irrelevant ?
+plot(log(car_data$Popularity), log(car_data$MSRP), main = "popular") # this looks irrelevant ?
 
 ```
 
 categorical data -1 
 ```{r}
 # categorical 
-par(mfrow = c(3,3))
+par(mfrow = c(2,3))
 # Veh. Style
-plot(car_data$Vehicle.Style, log(car_data$MSRP))
+plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
 # make
-plot(car_data$Make,log(car_data$MSRP))
+plot(car_data$Make,log(car_data$MSRP), main = "make")
 # year 
-plot(car_data$Year, log(car_data$MSRP))
+plot(car_data$Year, log(car_data$MSRP), main = "year")
 # fuel type
-plot(car_data$Engine.Fuel.Type, log(car_data$MSRP))
+plot(car_data$Engine.Fuel.Type, log(car_data$MSRP), main = "fuel type")
 # HP 
-plot(car_data$Engine.HP, log(car_data$MSRP))
+plot(car_data$Engine.HP, log(car_data$MSRP), main = "horse power")
 # cylinders
-plot(car_data$Engine.Cylinders, log(car_data$MSRP))
+plot(car_data$Engine.Cylinders, log(car_data$MSRP), main = "cylinders")
 ```
 
 categorical data -2
 ```{r}
-par(mfrow = c(3,3))
+par(mfrow = c(2,3))
 # transmission type
-plot(car_data$Transmission.Type, log(car_data$MSRP))
+plot(car_data$Transmission.Type, log(car_data$MSRP), main = "trans. type")
 # wheel drive
-plot(car_data$Driven_Wheels, log(car_data$MSRP))
+plot(car_data$Driven_Wheels, log(car_data$MSRP), main = "wheel drive")
 # number of doors
-plot(car_data$Number.of.Doors, log(car_data$MSRP))
+plot(car_data$Number.of.Doors, log(car_data$MSRP), main = "num of doors")
 # market category
-plot(car_data$Market.Category, log(car_data$MSRP))  #there is big chunk of missing values this may be unreliable
+plot(car_data$Market.Category, log(car_data$MSRP), main = "market category")  #there is big chunk of missing values this may be unreliable
 # size
-plot(car_data$Vehicle.Size, log(car_data$MSRP))
+plot(car_data$Vehicle.Size, log(car_data$MSRP), main = "vehicle size")
 # style
-plot(car_data$Vehicle.Style, log(car_data$MSRP))
+plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
 
 ```
