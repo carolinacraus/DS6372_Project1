@@ -1,0 +1,75 @@
+---
+title: "Applied Stat Project 1"
+author: "Joey Hernandez"
+date: "2023-01-22"
+output: html_document
+---
+
+
+```{r}
+library(tidyverse)
+library(naniar)
+dataset <- read.csv("C:/Users/Joey/Desktop/applied-stats/datasets/data1.csv")
+#glimpse(dataset) # looking at the var types of each
+summary(dataset) # visually looking at dataset
+vis_miss(dataset) # viz looking @ missing values
+
+```
+Var. that contain NA:
+
+Engine.HP = 69
+
+Engine.Cylinders = 30
+
+Number.of.Doors = 6 
+
+Since many of the missing values seem to be found we will input them into the dataset below instead of removing those observations.
+
+Number of Doors: All NA values here were found and input into the dataset.
+```{r}
+#updating NA for Doors
+dataset[6931:6935,9] <- 4 # Tesla model S
+dataset[4667,9] <- 2 # Ferrari FF 
+
+```
+
+
+Engine Cylinders
+
+The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders. This will remain NA for now. 
+
+The remaining NA values come from electric vehicles and have been updated to 0 to match the other electric vehicles.
+```{r}
+dataset[1984:1985, 6] <- 0 # chevy bolt EV
+dataset[3717:3720, 6] <- 0 # volkswagen e-golf
+dataset[5779:5781,6] <- 0 # mitsubishi i-miev
+dataset[8374,6] <- 0 # toyota rav4-ev
+dataset[c(5826,5831,5832,5834,5840,5841),6]<- 305 # chevy impala flex-fuel
+dataset[c(6909,6911,6917,6919),6]<-240 # lincoln mkz
+
+```
+
+Engine HP
+
+Certain cars specifically electric vehicles do not report "horsepower" but instead will report Kilowatts (KW)
+so we expect to see many Missing values when dealing with Electric vehicles. 
+
+Exceptions to this:
+Chevy Spark - GM reports 140 HP
+i3 - BMW reports 170-181 HP
+i-MiEV - Mitsubishi reports 66 HP
+e-golf - Volkswagen reports 115 HP
+
+
+```{r}
+dataset[8374,5] <- 'NA' # toyota RAV4-EV
+dataset[8374,5]
+
+dataset[2906:2909,5] <- 305 # lincoln Continental
+dataset[4204:4207,5]<- 168 # ford escape
+dataset[4915:4920,5]<- 193 # ford freestar
+
+summary(dataset)
+
+car_data <- dataset
+```
