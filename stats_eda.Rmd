@@ -63,13 +63,111 @@ e-golf - Volkswagen reports 115 HP
 
 ```{r}
 dataset[8374,5] <- 'NA' # toyota RAV4-EV
-dataset[8374,5]
-
 dataset[2906:2909,5] <- 305 # lincoln Continental
 dataset[4204:4207,5]<- 168 # ford escape
 dataset[4915:4920,5]<- 193 # ford freestar
 
-summary(dataset)
 
 car_data <- dataset
+
+```
+
+
+"Unknown" Data values in the Transmission.Type category
+Dodge Ram 150 could be a duplicate? 
+
+```{r}
+car_data[1290:1291, 7] <- "AUTOMATIC" # oldsmobile achieva
+car_data[4692,7]<- "MANUAL" # cheaper firebird
+car_data[4693:4694,7]<- "AUTOMATIC" #more expensive firebird
+car_data[6159,7] <- "MANUAL" # GMC Jimmy cheaper 99
+car_data[6161,7] <- "AUTOMATIC" # GMC jimmy 99
+car_data[6166,7] <- "MANUAL" #gmc jimmy 00
+car_data[6175,7]<- "AUTOMATIC" # gmc jimmy 00
+car_data[6367,7] <- "MANUAL" # chrysler le baron 
+car_data[6369,7] <- "AUTOMATIC"# chrysler le baron 
+car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ram 150
+
+#view(car_data)
+
+```
+
+upon further investigation we find that there are man "N/A" values within the 
+Market.Category column (3742). 
+For now we will proceed to visually inspect the data. 
+```{r}
+sum(car_data$Market.Category == "N/A")
+
+```
+
+
+There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
+```{r}
+car_data$Make <- as.factor(car_data$Make)
+car_data$Model<-as.factor(car_data$Model)
+car_data$Year<-as.factor(car_data$Year)
+car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type)
+car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # na values from elec. vehic. 
+car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders)
+car_data$Transmission.Type<-as.factor(car_data$Transmission.Type)
+car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels)
+car_data$Number.of.Doors<- as.factor(car_data$Number.of.Doors)
+car_data$Market.Category<-as.factor(car_data$Market.Category)
+car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size)
+car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style)
+```
+
+
+
+viz - of some intuitive relationships
+should be noted that since we are dealing with MSRP we may need to scale the data so that it can be visualized properly.
+Numerical data
+```{r}
+library(ggplot2)
+glimpse(car_data)
+# numerical 
+par(mfrow = c(2,2))
+# city mpg
+plot(log(car_data$city.mpg),log(car_data$MSRP))
+#hwy mpg
+plot(log(car_data$highway.MPG), log(car_data$MSRP))
+# popularity
+plot(log(car_data$Popularity), log(car_data$MSRP)) # this looks irrelevant ?
+
+```
+
+categorical data -1 
+```{r}
+# categorical 
+par(mfrow = c(3,3))
+# Veh. Style
+plot(car_data$Vehicle.Style, log(car_data$MSRP))
+# make
+plot(car_data$Make,log(car_data$MSRP))
+# year 
+plot(car_data$Year, log(car_data$MSRP))
+# fuel type
+plot(car_data$Engine.Fuel.Type, log(car_data$MSRP))
+# HP 
+plot(car_data$Engine.HP, log(car_data$MSRP))
+# cylinders
+plot(car_data$Engine.Cylinders, log(car_data$MSRP))
+```
+
+categorical data -2
+```{r}
+par(mfrow = c(3,3))
+# transmission type
+plot(car_data$Transmission.Type, log(car_data$MSRP))
+# wheel drive
+plot(car_data$Driven_Wheels, log(car_data$MSRP))
+# number of doors
+plot(car_data$Number.of.Doors, log(car_data$MSRP))
+# market category
+plot(car_data$Market.Category, log(car_data$MSRP))  #there is big chunk of missing values this may be unreliable
+# size
+plot(car_data$Vehicle.Size, log(car_data$MSRP))
+# style
+plot(car_data$Vehicle.Style, log(car_data$MSRP))
+
 ```
