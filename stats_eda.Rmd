@@ -204,7 +204,7 @@ max(car_data$MSRP)
 viz - of some intuitive relationships
 should be noted that since we are dealing with MSRP we may need to scale the data so that it can be visualized properly.
 Numerical data
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 glimpse(car_data)
 # numerical 
 par(mfrow = c(2,2))
@@ -216,9 +216,17 @@ plot(log(car_data$highway.MPG), log(car_data$MSRP), main = "hwy mpg")
 plot(log(car_data$Popularity), log(car_data$MSRP), main = "popular") # this looks irrelevant ?
 
 ```
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data %>% filter(Year <= "2000") %>% ggplot(aes(Year, MSRP)) +
+  geom_point()
+
+car_data %>% filter(Year >= "2000" ) %>% ggplot(aes(Year, MSRP))+
+  geom_point()
+```
+
 
 categorical data -1 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(ggplot2)
 
 # categorical 
@@ -230,12 +238,6 @@ plot(car_data$Make,log(car_data$MSRP), main = "make")
 # year 
 plot(car_data$Year, log(car_data$MSRP), main = "year")
 
-car_data %>% filter(Year <= "2000") %>% ggplot(aes(Year, MSRP)) +
-  geom_point()
-
-car_data %>% filter(Year >= "2000" ) %>% ggplot(aes(Year, MSRP))+
-  geom_point()
-
 # fuel type
 plot(car_data$Engine.Fuel.Type, log(car_data$MSRP), main = "fuel type")
 # HP 
@@ -245,7 +247,7 @@ plot(car_data$Engine.Cylinders, log(car_data$MSRP), main = "cylinders")
 ```
 
 categorical data -2
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 par(mfrow = c(2,3))
 # transmission type
 plot(car_data$Transmission.Type, log(car_data$MSRP), main = "trans. type")
