@@ -92,10 +92,10 @@ car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ra
 
 ```
 
-upon further investigation we find that there are man "N/A" values within the 
-Market.Category column (3742). 
-For now we will proceed to visually inspect the data. 
+upon further investigation we find that there are many "N/A" values within the 
+Market.Category column (3742) which could infact mean there is no applicable group that it fits into. we will change this N/A to No Category
 ```{r}
+
 sum(car_data$Market.Category == "N/A")
 
 ```
@@ -154,6 +154,43 @@ car_data %>% ggplot(aes(Popularity))+
 
 glimpse(car_data)
 
+# representation of drive type (AWD,FWD, 4WD etc)
+car_data %>% ggplot(aes(Driven_Wheels))+
+  geom_bar()
+
+# right skewed data for Year (which makes sense since we expect to be selling "newer" vehicles)
+car_data %>% ggplot(aes(Year)) +
+  geom_bar()
+
+car_data %>% ggplot(aes(Engine.Fuel.Type))+
+  geom_bar() + coord_flip()
+
+```
+
+this chunk is to look at MSRP broken into different ranges and finally logged
+```{r}
+car_data %>% ggplot(aes(MSRP))+
+  geom_histogram()
+
+car_data %>% filter(MSRP <=20000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=40000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=60000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=80000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=100000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% ggplot(aes(log(MSRP)))+
+  geom_histogram()
+
+max(car_data$MSRP)
 ```
 
 
