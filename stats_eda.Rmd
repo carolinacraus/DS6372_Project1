@@ -93,10 +93,13 @@ car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ra
 ```
 
 upon further investigation we find that there are many "N/A" values within the 
-Market.Category column (3742) which could infact mean there is no applicable group that it fits into. we will change this N/A to No Category
+Market.Category column (3742) which could infact mean there is no applicable group that it fits into. we
+will change this N/A to No Category
 ```{r}
 
-sum(car_data$Market.Category == "N/A")
+sum(car_data$Market.Category == "N/A") #3742
+
+car_data$Market.Category[car_data$Market.Category == "N/A"] <- "No Category"
 
 ```
 
@@ -115,10 +118,14 @@ car_data$Number.of.Doors<- as.factor(car_data$Number.of.Doors)
 car_data$Market.Category<-as.factor(car_data$Market.Category)
 car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size)
 car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style)
+car_data$Market.Category<-as.factor(car_data$Market.Category)
 ```
 viz: variables in dataset
 ```{r}
 glimpse(car_data)
+
+car_data%>%ggplot(aes(Market.Category))+
+  geom_bar()+coord_flip()
 
 # which make of car has the highest count? 
 car_data %>% ggplot(aes(Make)) + 
