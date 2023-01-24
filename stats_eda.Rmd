@@ -105,7 +105,7 @@ There are many chr and int types so we will change them into a factor where need
 ```{r}
 car_data$Make <- as.factor(car_data$Make)
 car_data$Model<-as.factor(car_data$Model)
-car_data$Year<-as.factor(car_data$Year)
+#car_data$Year<-as.factor(car_data$Year)
 car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type)
 car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # na values from elec. vehic. 
 car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders)
@@ -116,7 +116,45 @@ car_data$Market.Category<-as.factor(car_data$Market.Category)
 car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size)
 car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style)
 ```
+viz: variables in dataset
+```{r}
+glimpse(car_data)
 
+# which make of car has the highest count? 
+car_data %>% ggplot(aes(Make)) + 
+  geom_bar(stat = 'count') + coord_flip()
+
+# mpg distribution between cars
+car_data %>% ggplot(aes(city.mpg))+
+  geom_histogram()
+#mean(car_data$city.mpg)
+#
+# hwy dist. between cars
+car_data %>% ggplot(aes(highway.MPG))+
+  geom_histogram() # is there a report for EV? 
+
+# number of doors bar plot
+car_data %>% ggplot(aes(Number.of.Doors))+
+  geom_bar() # most cars have 4 doors (sedans)
+
+car_data %>% ggplot(aes(Vehicle.Style))+
+  geom_bar() + coord_flip() # this sedan and 4dr suv matches what we saw earlier. 
+
+car_data %>% ggplot(aes(Transmission.Type))+
+  geom_bar()  # are there any electric cars listed as something other than direct_drive? 
+
+# Engine HP dist. 
+car_data %>% ggplot(aes(Engine.HP)) +
+  geom_histogram() # EV typically do no report this. that should prob be considered if we are 
+# using this to predict prices of EV..
+
+car_data %>% ggplot(aes(Popularity))+
+  geom_histogram() # not sure how this is rated.. but theres a huge part missing 
+ # most tend to be found in 0 - just above 2000
+
+glimpse(car_data)
+
+```
 
 
 viz - of some intuitive relationships
@@ -137,6 +175,8 @@ plot(log(car_data$Popularity), log(car_data$MSRP), main = "popular") # this look
 
 categorical data -1 
 ```{r}
+library(ggplot2)
+
 # categorical 
 par(mfrow = c(2,3))
 # Veh. Style
@@ -145,6 +185,13 @@ plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
 plot(car_data$Make,log(car_data$MSRP), main = "make")
 # year 
 plot(car_data$Year, log(car_data$MSRP), main = "year")
+
+car_data %>% filter(Year <= "2000") %>% ggplot(aes(Year, MSRP)) +
+  geom_point()
+
+car_data %>% filter(Year >= "2000" ) %>% ggplot(aes(Year, MSRP))+
+  geom_point()
+
 # fuel type
 plot(car_data$Engine.Fuel.Type, log(car_data$MSRP), main = "fuel type")
 # HP 
@@ -170,3 +217,5 @@ plot(car_data$Vehicle.Size, log(car_data$MSRP), main = "vehicle size")
 plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
 
 ```
+
+
