@@ -6,7 +6,7 @@ output: html_document
 ---
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(tidyverse)
 library(naniar)
 dataset <- read.csv("C:/Users/Joey/Desktop/applied-stats/datasets/data1.csv")
@@ -26,7 +26,7 @@ Number.of.Doors = 6
 Since many of the missing values seem to be found we will input them into the dataset below instead of removing those observations.
 
 Number of Doors: All NA values here were found and input into the dataset.
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 #updating NA for Doors
 dataset[6931:6935,9] <- 4 # Tesla model S
 dataset[4667,9] <- 2 # Ferrari FF 
@@ -39,7 +39,7 @@ Engine Cylinders
 The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders. This will remain NA for now. 
 
 The remaining NA values come from electric vehicles and have been updated to 0 to match the other electric vehicles.
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 dataset[1984:1985, 6] <- 0 # chevy bolt EV
 dataset[3717:3720, 6] <- 0 # volkswagen e-golf
 dataset[5779:5781,6] <- 0 # mitsubishi i-miev
@@ -61,7 +61,7 @@ i-MiEV - Mitsubishi reports 66 HP
 e-golf - Volkswagen reports 115 HP
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 dataset[8374,5] <- 'NA' # toyota RAV4-EV
 dataset[2906:2909,5] <- 305 # lincoln Continental
 dataset[4204:4207,5]<- 168 # ford escape
@@ -76,7 +76,7 @@ car_data <- dataset
 "Unknown" Data values in the Transmission.Type category
 Dodge Ram 150 could be a duplicate? 
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data[1290:1291, 7] <- "AUTOMATIC" # oldsmobile achieva
 car_data[4692,7]<- "MANUAL" # cheaper firebird
 car_data[4693:4694,7]<- "AUTOMATIC" #more expensive firebird
@@ -95,7 +95,7 @@ car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ra
 upon further investigation we find that there are many "N/A" values within the 
 Market.Category column (3742) which could infact mean there is no applicable group that it fits into. we
 will change this N/A to No Category
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 sum(car_data$Market.Category == "N/A") #3742
 
@@ -105,7 +105,7 @@ car_data$Market.Category[car_data$Market.Category == "N/A"] <- "No Category"
 
 
 There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data$Make <- as.factor(car_data$Make)
 car_data$Model<-as.factor(car_data$Model)
 #car_data$Year<-as.factor(car_data$Year)
@@ -121,7 +121,7 @@ car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style)
 car_data$Market.Category<-as.factor(car_data$Market.Category)
 ```
 viz: variables in dataset
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 glimpse(car_data)
 
 car_data%>%ggplot(aes(Market.Category))+
@@ -175,7 +175,7 @@ car_data %>% ggplot(aes(Engine.Fuel.Type))+
 ```
 
 this chunk is to look at MSRP broken into different ranges and finally logged
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data %>% ggplot(aes(MSRP))+
   geom_histogram()
 
