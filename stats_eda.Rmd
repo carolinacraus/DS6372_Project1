@@ -6,16 +6,29 @@ output:
   github_document: default
 ---
 
+<hr>
+<center><h2>Explanatory Data Analysis</h2></center>
+<hr>
+
+<h4>Loading Data set and inspecting summary statistics as well as missing data:</h4>
+
+
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(tidyverse)
 library(naniar)
+
 dataset <- read.csv("C:/Users/Joey/Desktop/applied-stats/datasets/data1.csv")
+
 #glimpse(dataset) # looking at the var types of each
-summary(dataset) # visually looking at dataset
+
+summary(dataset) # visually looking at the sum. stats of the vars in the data. 
+
 vis_miss(dataset) # viz looking @ missing values
 
 ```
 
+
+We can see there is a number of variables that contain NA's
 
 <h4>Var. that contain NA:</h4>
 
@@ -23,8 +36,11 @@ vis_miss(dataset) # viz looking @ missing values
 - Engine.Cylinders = 30
 - Number.of.Doors = 6 
 
-Since many of the missing values seem to be found we will input them into the dataset below instead of removing those observations.
-Number of Doors: All NA values here were found and input into the dataset.
+Since many of the missing values seem to be found using any number of automobile spec. websites we will input them into the dataset below instead of removing those observations so that we can fully utilize the features and data provided.
+
+
+<h4>Number of Doors:</h4>
+ All NA values here belong to Tesla Model S and Ferrari FF. We were able to find and input these values. 
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 #updating NA for Doors
@@ -34,10 +50,12 @@ dataset[4667,9] <- 2 # Ferrari FF
 ```
 
 
+
 <h4>Engine Cylinders</h4>
 
-The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders. This will remain NA for now. 
-The remaining NA values come from electric vehicles and have been updated to 0 to match the other electric vehicles.
+The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders.
+
+On the EV side of the data set we find the remaining NA values and they have been updated to 0 since electric vehicles do not have engine cylinders. future consideration for a substitute value would be ideal here as the automobile market gains more and more Electric vehicles. This substitute value would help to leverage a way to add accurate predictions and values using this metric when comparing many EV.
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
@@ -63,7 +81,7 @@ i3 - BMW reports 170-181 HP
 i-MiEV - Mitsubishi reports 66 HP
 e-golf - Volkswagen reports 115 HP
 
-we could possibly create a ML algo to predict what the HP is... but since they are reported on a differnet scale, and are of a differnt type of vehicle
+we could possibly create a ML algo to predict what the HP is... but since they are reported on a different scale, and are of a different type of vehicle
 maybe it would be better off changing the "missing values" into 0s. 
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
@@ -74,18 +92,31 @@ dataset[4915:4920,5]<- 193 # ford freestar
 dataset[c(5826,5831,5832,5834,5840,5841),5]<- 305 # chevy impala flex-fuel
 dataset[c(6909,6911,6917,6919),5]<-240 # lincoln mkz
 dataset[6579, 5] <- 200 # mercedes-benz m-class
-
+dataset[8375:8376,5]<-154 # 2013 rav4 EV and 2014
 dataset[540:542, 5] <- 111 # fiat 500 e - from edmunds
 dataset[9851:9855,5]<- 109 # kia soul Ev
 dataset[4706:4707,5] <- 123 # honda fit Ev
 dataset[c(4786,4790,4799),5] <- 143 # ford focus ev
-
-
+dataset[5779,5] <- 66 # mitsubishi i-miev
+dataset[6386:6395,5] <- 107 # nissan leaf 
+dataset[6923,5] <- 302 # base tsla model s 2014
+dataset[6922,5] <- 302 # 2nd tsla model s 2014
+dataset[6925,5] <- 362 # 3rd tsla model s 2014
+dataset[6924,5] <- 416 # 4th tsla model s 2014
+dataset[6926:6927,5]<- 329 # tsla model s 2015
+dataset[6930, 5]<- 362 # tsla model s 2015
+dataset[6928,5]<- 416 # tsla model s 2015
+dataset[6929,5]<- 691 # tsla model s 2015
+dataset[6932,5]<-259 # tsla model s 2016
+dataset[6935,5]<-315
+dataset[6934:6936,5] <- 373 # tsla model s 2016
+dataset[6936,5]<-373# tsla model s 2016
+dataset[c(6931,6937),5]<-417# tsla model s 2016
+dataset[6939,5]<- 503# tsla model s 2016
+dataset[c(6933,6938),5] <- 691# tsla model s 2016
 
 dataset[11322:11324,4] <- 'regular unleaded' # suzuki verona missing fuel type
 
-
-view(dataset)
 
 car_data <- dataset
 
@@ -93,7 +124,9 @@ car_data <- dataset
 
 
 <h4>"Unknown" Data values in the Transmission.Type category</h4>
-Dodge Ram 150 could be a duplicate? 
+Values of "Unknown" were discovered in the data. These Unknown values are publicly and easily accessible information and we 
+were able to update the database with the proper assignments.
+
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data[1290:1291, 7] <- "AUTOMATIC" # oldsmobile achieva
@@ -107,26 +140,13 @@ car_data[6367,7] <- "MANUAL" # chrysler le baron
 car_data[6369,7] <- "AUTOMATIC"# chrysler le baron 
 car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ram 150
 
-#view(car_data)
-
 ```
 
-
-upon further investigation we find that there are many "N/A" values within the 
-Market.Category column (3742) which could in fact mean there is no applicable group that it fits into. we
-will change this N/A to "No Category"
-
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-
-sum(car_data$Market.Category == "N/A") #3742
-
-car_data$Market.Category[car_data$Market.Category == "N/A"] <- "No Category"
-
-```
 
 
 There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
 car_data$Make <- as.factor(car_data$Make)
 car_data$Model<-as.factor(car_data$Model)
 #car_data$Year<-as.factor(car_data$Year) 
@@ -136,22 +156,51 @@ car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders)
 car_data$Transmission.Type<-as.factor(car_data$Transmission.Type)
 car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels)
 car_data$Number.of.Doors<- as.factor(car_data$Number.of.Doors)
-car_data$Market.Category<-as.factor(car_data$Market.Category)
 car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size)
 car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style)
 car_data$Market.Category<-as.factor(car_data$Market.Category)
 ```
 
-```{r}
-sum(car_data$Engine.HP == 0) 
 
-car_data$Engine.HP[car_data$Engine.HP == 0] <- "Electric"
+<h4>"Not Applicable" Values:</h4>
+
+upon investigation of the Market Category section we found many "N/A" values (3,742).
+These values seem to be implicitly add N/A values, which could in fact mean there is no applicable group that it fits into. we
+will change this N/A to "No Category" to avoid any confusion with Missing value data. 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# change so that we can handle the "N/A" which is NOT an NA
+car_data$Market.Category<-as.character(car_data$Market.Category)
+sum(car_data$Market.Category == "N/A") #3742 this is our benchmark 
+
+# reading as not applicable we will change to no category
+car_data$Market.Category[car_data$Market.Category == "N/A"] <- "No Category"
+
+# sanity check should be 0
+sum(car_data$Market.Category == "N/A")
+
+# change to match rest of data type (factor)
+car_data$Market.Category<-as.factor(car_data$Market.Category)
+summary(car_data)
+vis_miss(car_data)
+view(car_data)
 ```
 
+<hr>
+remaining considerations
+<hr>
 
-viz: variables in dataset
+<h4>Duplicated Data</h4>
+It would appear at first glance that there are many duplicates within this dataset, however if
+you look at HP/MSRP, or other types of attributes of certain vehicles you will see subtle differences. 
+While it is not an explicitly stated this is assumed to be due to various trims, and engine types/offerings that 
+each vehicle offers.
+
+
+viz: variables in data set
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
-glimpse(car_data)
+
+
 
 car_data%>%ggplot(aes(Market.Category))+
   geom_bar()+coord_flip()
@@ -161,10 +210,9 @@ car_data %>% ggplot(aes(Make)) +
   geom_bar(stat = 'count') + coord_flip()
 
 # mpg distribution between cars
-car_data %>% ggplot(aes(city.mpg))+
-  geom_histogram()
-#mean(car_data$city.mpg)
-#
+ car_data %>% ggplot(aes(city.mpg))+
+   geom_histogram()
+ 
 # hwy dist. between cars
 car_data %>% ggplot(aes(highway.MPG))+
   geom_histogram() # is there a report for EV? 
@@ -180,15 +228,12 @@ car_data %>% ggplot(aes(Transmission.Type))+
   geom_bar()  # are there any electric cars listed as something other than direct_drive? 
 
 # Engine HP dist. 
-car_data %>% ggplot(aes(Engine.HP)) +
-  geom_histogram() # EV typically do no report this. that should prob be considered if we are 
-# using this to predict prices of EV..
+car_data %>% ggplot(aes(Engine.HP))+
+  geom_histogram()
 
 car_data %>% ggplot(aes(Popularity))+
   geom_histogram() # not sure how this is rated.. but theres a huge part missing 
  # most tend to be found in 0 - just above 2000
-
-glimpse(car_data)
 
 # representation of drive type (AWD,FWD, 4WD etc)
 car_data %>% ggplot(aes(Driven_Wheels))+
@@ -248,6 +293,8 @@ plot(log(car_data$highway.MPG), log(car_data$MSRP), main = "hwy mpg")
 plot(log(car_data$Popularity), log(car_data$MSRP), main = "popular") # this looks irrelevant ?
 
 ```
+
+
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data %>% filter(Year >= 2000) %>% ggplot(aes(Year, MSRP))+
   geom_point()
@@ -297,3 +344,8 @@ plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
 
 ```
 
+MODEL 
+```{r}
+
+
+```
