@@ -146,7 +146,7 @@ car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ra
 
 There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
-glimpse(car_data)
+
 car_data$Make <- as.factor(car_data$Make)
 car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type) # chr
 car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # dbl 
@@ -182,15 +182,189 @@ car_data$Market.Category<-as.factor(car_data$Market.Category)
 
 ```
 Typo Audi MPG
-```{r}
-view(car_data)
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
 car_data[1120,13] <- 34
 
 ```
 
+<h4>Visuals on cleaned dataset </h4>
 
-Finally we will remove the "model" variable since it presents us with no value.
-```{r}
+Potential Transformations needed:
+- Engine HP slight right skew ... log helps this 
+- popularity both right and left skewed (when transformed or not) seems to be a metric we can leave out? 
+- city.mpg this is skewed to the right.. mostly because of electric vehicles no transform fixes this issue.
+- highway.mpg same as city... we see a strong right skew. electric vehicles skew the data heavily
+
+
+Viz - 1
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
+view(car_data)
+car_data%>%ggplot(aes(Market.Category))+
+  geom_bar()+coord_flip()
+
+# which make of car has the highest count? 
+car_data %>% ggplot(aes(Make)) + 
+  geom_bar(stat = 'count') + coord_flip()
+
+# city mpg distribution between cars
+ car_data %>% ggplot(aes(city.mpg))+
+   geom_histogram()
+ 
+# hwy dist. between cars
+car_data %>% ggplot(aes(highway.MPG))+
+  geom_histogram() # is there a report for EV? 
+
+# Engine HP dist. 
+car_data %>% ggplot(aes(log(Engine.HP)))+ # log provides best view
+  geom_histogram()
+
+
+car_data %>% ggplot(aes(sqrt(Popularity)))+
+  geom_histogram() # not sure how this is rated.. but theres a huge part missing 
+ # most tend to be found in 0 - just above 2000
+
+# representation of drive type (AWD,FWD, 4WD etc)
+car_data %>% ggplot(aes(Driven_Wheels))+
+  geom_bar()
+
+# left skewed data for Year (which makes sense since we expect to be selling "newer" vehicles)
+car_data %>% ggplot(aes(Year)) +
+  geom_bar()
+
+```
+
+
+Viz 2 - MSRP broken into different ranges. 
+
+Logged version seems to have a bimodal distribution which makes sense since we essentiall have a used and new market price for cars. 
+older vehicles (specifically those in the 90s) seem to have a fixed price of 2k. 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
+car_data%>% ggplot(aes(Year, MSRP))+
+  geom_point()
+
+car_data %>% ggplot(aes(MSRP))+
+  geom_histogram()
+
+car_data%>% ggplot(aes(log(MSRP)))+
+  geom_histogram()
+
+car_data %>% filter(MSRP <=10000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=20000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=40000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=60000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=80000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% filter(MSRP <=100000) %>% ggplot(aes(MSRP)) +
+  geom_histogram()
+
+car_data %>% ggplot(aes(log(MSRP)))+
+  geom_histogram()
+
+```
+
+
+Viz 3
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
+# numerical 
+par(mfrow = c(2,2))
+# city mpg
+plot(car_data$city.mpg,car_data$MSRP, main = "city mpg")
+#hwy mpg
+plot(car_data$highway.MPG, car_data$MSRP, main = "hwy mpg")
+# popularity
+plot(car_data$Popularity, car_data$MSRP, main = "popular") # this looks irrelevant ?
+
+plot(car_data$Engine.HP, car_data$MSRP, main="Engine HP")
+
+```
+
+viz 3 with log MSRP
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
+# numerical 
+par(mfrow = c(2,2))
+# city mpg
+plot(car_data$city.mpg, log(car_data$MSRP), main = "city mpg")
+#hwy mpg
+plot(car_data$highway.MPG, log(car_data$MSRP), main = "hwy mpg")
+# popularity
+plot(car_data$Popularity, log(car_data$MSRP), main = "popular") # this looks irrelevant ?
+
+plot(car_data$Engine.HP, log(car_data$MSRP), main="Engine HP")
+
+```
+
+
+Viz 4- Year Split into groups
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data %>% filter(Year >= 2000) %>% ggplot(aes(as.integer(Year), MSRP))+
+  geom_point()
+
+car_data %>% filter(Year < 2000) %>% ggplot(aes(as.integer(Year), MSRP))+
+  geom_point()
+
+```
+
+
+Viz 5
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+library(ggplot2)
+
+# categorical 
+par(mfrow = c(2,3))
+# Veh. Style
+plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
+# make
+plot(car_data$Make,log(car_data$MSRP), main = "make")
+# year 
+plot(car_data$Year, log(car_data$MSRP), main = "year")
+
+# fuel type
+plot(car_data$Engine.Fuel.Type, log(car_data$MSRP), main = "fuel type")
+# HP 
+plot(car_data$Engine.HP, log(car_data$MSRP), main = "horse power")
+# cylinders
+plot(car_data$Engine.Cylinders, log(car_data$MSRP), main = "cylinders")
+```
+
+
+Viz 6
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+par(mfrow = c(2,3))
+# transmission type
+plot(car_data$Transmission.Type, log(car_data$MSRP), main = "trans. type")
+# wheel drive
+plot(car_data$Driven_Wheels, log(car_data$MSRP), main = "wheel drive")
+# number of doors
+plot(car_data$Number.of.Doors, log(car_data$MSRP), main = "num of doors")
+# market category
+plot(car_data$Market.Category, log(car_data$MSRP), main = "market category")  #there is big chunk of missing values this may be unreliable
+# size
+plot(car_data$Vehicle.Size, log(car_data$MSRP), main = "vehicle size")
+# style
+plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
+
+```
+
+
+
+
+Finally we will remove the "model" variable since it presents no obvious value.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 #glimpse(car_data) # view the df
 car_data <- car_data[,-2] # rm the model column
 #glimpse(car_data) # sanity check the df
@@ -214,7 +388,7 @@ each vehicle offers.
 
 
 feat. selection 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(caret)
 
 glimpse(car_data)
@@ -255,7 +429,7 @@ are Engine.HP and Engine.Cylinders.
 
 Log MSRP seems to have a stronger correlation with Year and also includes Engine.HP, Engine.Cylinders
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(ggcorrplot)
 
 car_data_correlations <- car_data[,-c(1, 3, 6, 7,9,10,11)]
@@ -272,7 +446,7 @@ ggcorrplot(corr_data, outline.color = "black", lab = TRUE)
 ```
 
 General Model Creation 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(car)
 car_model_fit <- lm(log_MSRP~Year+Engine.Cylinders+Engine.HP,car_data_correlations)
 
@@ -289,7 +463,7 @@ vif(car_model_fit)
 
 categorical variable encoding
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data$BMW <- ifelse(car_data$Make == "BMW",1,0) # if bmw then 1 else(not) 0
 car_data$Audi <- ifelse(car_data$Make=="Audi",1,0)
 car_data$FIAT <- ifelse(car_data$Make=="FIAT",1,0)
@@ -342,7 +516,7 @@ car_data$Spyker <- ifelse(car_data$Make=="Spyker",1,0)
 ```
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 # levels(car_data$Engine.Fuel.Type)
 # 
  car_data$diesel <- ifelse(car_data$Engine.Fuel.Type == "diesel",1,0)
@@ -358,7 +532,7 @@ car_data$Spyker <- ifelse(car_data$Make=="Spyker",1,0)
 
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 levels(car_data$Driven_Wheels)
 
@@ -369,7 +543,7 @@ car_data$awd <- ifelse(car_data$Driven_Wheels=="all wheel drive",1,0)
 dim(car_data)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 
 # levels(car_data$Transmission.Type)
@@ -383,7 +557,7 @@ dim(car_data)
 ```
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 
 car_data$two_door <- ifelse(car_data$Number.of.Doors == "2",1,0)
@@ -392,7 +566,7 @@ car_data$three_door <- ifelse(car_data$Number.of.Doors=="3",1,0)
 dim(car_data)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 
 
@@ -425,7 +599,7 @@ glimpse(car_data)
 
 
 scaling data for use in our Regression models
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data$Engine.HP <- as.integer(car_data$Engine.HP)
 car_data$Engine.Cylinders<-as.integer(car_data$Engine.Cylinders)
 car_scaled <- car_data
@@ -435,171 +609,12 @@ car_scaled[2:8] <- as.data.frame(scale(car_scaled[2:8]))
 ```
 
 
-```{r}
-
-ggcorrplot(data_corr)
-data_corr <- cor(car_scaled)
-plot(data_corr)
-
-
-```
-
-
-viz: variables in data set
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-
-
-
-car_data%>%ggplot(aes(Market.Category))+
-  geom_bar()+coord_flip()
-
-# which make of car has the highest count? 
-car_data %>% ggplot(aes(Make)) + 
-  geom_bar(stat = 'count') + coord_flip()
-
-# mpg distribution between cars
- car_data %>% ggplot(aes(city.mpg))+
-   geom_histogram()
- 
-# hwy dist. between cars
-car_data %>% ggplot(aes(highway.MPG))+
-  geom_histogram() # is there a report for EV? 
-
-# number of doors bar plot
-car_data %>% ggplot(aes(Number.of.Doors))+
-  geom_bar() # most cars have 4 doors (sedans)
-
-car_data %>% ggplot(aes(Vehicle.Style))+
-  geom_bar() + coord_flip() # this sedan and 4dr suv matches what we saw earlier. 
-
-car_data %>% ggplot(aes(Transmission.Type))+
-  geom_bar()  # are there any electric cars listed as something other than direct_drive? 
-
-# Engine HP dist. 
-car_data %>% ggplot(aes(Engine.HP))+
-  geom_histogram()
-
-car_data %>% ggplot(aes(Popularity))+
-  geom_histogram() # not sure how this is rated.. but theres a huge part missing 
- # most tend to be found in 0 - just above 2000
-
-# representation of drive type (AWD,FWD, 4WD etc)
-car_data %>% ggplot(aes(Driven_Wheels))+
-  geom_bar()
-
-# right skewed data for Year (which makes sense since we expect to be selling "newer" vehicles)
-car_data %>% ggplot(aes(Year)) +
-  geom_bar()
-
-car_data %>% ggplot(aes(Engine.Fuel.Type))+
-  geom_bar() + coord_flip()
-
-```
-
-this chunk is to look at MSRP broken into different ranges and finally logged
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-car_data %>% ggplot(aes(MSRP))+
-  geom_histogram()
-
-car_data %>% filter(MSRP <=10000) %>% ggplot(aes(MSRP)) +
-  geom_histogram()
-
-car_data %>% filter(MSRP <=20000) %>% ggplot(aes(MSRP)) +
-  geom_histogram()
-
-car_data %>% filter(MSRP <=40000) %>% ggplot(aes(MSRP)) +
-  geom_histogram()
-
-car_data %>% filter(MSRP <=60000) %>% ggplot(aes(MSRP)) +
-  geom_histogram()
-
-car_data %>% filter(MSRP <=80000) %>% ggplot(aes(MSRP)) +
-  geom_histogram()
-
-car_data %>% filter(MSRP <=100000) %>% ggplot(aes(MSRP)) +
-  geom_histogram()
-
-car_data %>% ggplot(aes(log(MSRP)))+
-  geom_histogram()
-
-max(car_data$MSRP)
-```
-
-
-viz - of some intuitive relationships
-should be noted that since we are dealing with MSRP we may need to scale the data so that it can be visualized properly.
-Numerical data
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-glimpse(car_data)
-# numerical 
-par(mfrow = c(2,2))
-# city mpg
-plot(car_data$city.mpg,car_data$MSRP, main = "city mpg")
-#hwy mpg
-plot(car_data$highway.MPG, car_data$MSRP, main = "hwy mpg")
-# popularity
-plot(car_data$Popularity, car_data$MSRP, main = "popular") # this looks irrelevant ?
-
-plot(car_data$Engine.HP, car_data$MSRP, main="Engine HP")
-
-```
-
-
-
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-car_data %>% filter(Year >= 2000) %>% ggplot(aes(Year, MSRP))+
-  geom_point()
-
-car_data %>% filter(Year <= 2000 ) %>% ggplot(aes(Year, MSRP))+
-  geom_point()
-
-```
-
-
-categorical data -1 
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-library(ggplot2)
-
-# categorical 
-par(mfrow = c(2,3))
-# Veh. Style
-plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
-# make
-plot(car_data$Make,log(car_data$MSRP), main = "make")
-# year 
-plot(car_data$Year, log(car_data$MSRP), main = "year")
-
-# fuel type
-plot(car_data$Engine.Fuel.Type, log(car_data$MSRP), main = "fuel type")
-# HP 
-plot(car_data$Engine.HP, log(car_data$MSRP), main = "horse power")
-# cylinders
-plot(car_data$Engine.Cylinders, log(car_data$MSRP), main = "cylinders")
-```
-
-categorical data -2
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-par(mfrow = c(2,3))
-# transmission type
-plot(car_data$Transmission.Type, log(car_data$MSRP), main = "trans. type")
-# wheel drive
-plot(car_data$Driven_Wheels, log(car_data$MSRP), main = "wheel drive")
-# number of doors
-plot(car_data$Number.of.Doors, log(car_data$MSRP), main = "num of doors")
-# market category
-plot(car_data$Market.Category, log(car_data$MSRP), main = "market category")  #there is big chunk of missing values this may be unreliable
-# size
-plot(car_data$Vehicle.Size, log(car_data$MSRP), main = "vehicle size")
-# style
-plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
-
-```
 
 
 
 
 Feature Selection scaled data - looks like trash
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(caret)
 glimpse(car_scaled)
 
