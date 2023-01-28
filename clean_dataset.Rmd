@@ -160,6 +160,8 @@ car_data$Market.Category<-as.factor(car_data$Market.Category) # chr
 ```
 
 
+
+
 <h4>"Not Applicable" Values:</h4>
 
 upon investigation of the Market Category section we found many "N/A" values (3,742).
@@ -194,5 +196,21 @@ Finally we will remove the "model" variable since it presents no obvious value.
 #glimpse(car_data) # view the df
 car_data <- car_data[,-2] # rm the model column
 #glimpse(car_data) # sanity check the df
+
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+dim(car_data)
+# keeping data from > than year 2000
+car_df <- car_data %>% filter(Year > 2000)
+
+# changing as factor to viz. 
+car_df$Year <- as.factor(car_df$Year)
+
+
+plot(car_df$Year, log(car_df$MSRP), main = "year")
+
 
 ```
