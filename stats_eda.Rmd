@@ -146,19 +146,17 @@ car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ra
 
 There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
-
+glimpse(car_data)
 car_data$Make <- as.factor(car_data$Make)
-car_data$Model<-as.factor(car_data$Model)
-#car_data$Year<-as.factor(car_data$Year) 
-car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type)
-car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # na values from elec. vehic. 
-car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders)
-car_data$Transmission.Type<-as.factor(car_data$Transmission.Type)
-car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels)
-car_data$Number.of.Doors<- as.factor(car_data$Number.of.Doors)
-car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size)
-car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style)
-car_data$Market.Category<-as.factor(car_data$Market.Category)
+car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type) # chr
+car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # dbl 
+car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders) # dbl
+car_data$Transmission.Type<-as.factor(car_data$Transmission.Type) # chr
+car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels) # chr
+car_data$Number.of.Doors<- as.integer(car_data$Number.of.Doors) # dbl
+car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size) # chr
+car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style) # chr
+car_data$Market.Category<-as.factor(car_data$Market.Category) # chr
 ```
 
 
@@ -181,10 +179,27 @@ sum(car_data$Market.Category == "N/A")
 
 # change to match rest of data type (factor)
 car_data$Market.Category<-as.factor(car_data$Market.Category)
-summary(car_data)
-vis_miss(car_data)
-view(car_data)
+
 ```
+Typo Audi MPG
+```{r}
+view(car_data)
+car_data[1120,13] <- 34
+
+```
+
+
+Finally we will remove the "model" variable since it presents us with no value.
+```{r}
+#glimpse(car_data) # view the df
+car_data <- car_data[,-2] # rm the model column
+#glimpse(car_data) # sanity check the df
+
+```
+
+
+
+
 
 <hr>
 remaining considerations
@@ -195,6 +210,189 @@ It would appear at first glance that there are many duplicates within this datas
 you look at HP/MSRP, or other types of attributes of certain vehicles you will see subtle differences. 
 While it is not an explicitly stated this is assumed to be due to various trims, and engine types/offerings that 
 each vehicle offers.
+
+
+
+feat. selection 
+```{r}
+library(caret)
+
+glimpse(car_data)
+first_fir <- lm(log(MSRP)~Engine.HP+Engine.Cylinders,car_data)
+plot(first_fir)
+
+
+model_1 <- lm(log(MSRP)~.,car_data)
+plot(model_1)
+
+set.seed(7)
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+glmnet.fit <- train(log(MSRP)~.,
+                    data = car_data,
+                    method = "glmnet",
+                    trControl = fitControl)
+
+glmnet.fit
+opt.pen<- glmnet.fit$finalModel$lambdaOpt
+coef(glmnet.fit$finalModel,opt.pen)
+
+
+car_glm<- car_data[,!names(car_data) %in% c("Engine.Cylinders6","city.mpg","Chrysler",
+                                            "Ford","Hummer","Infiniti","Mazda","Volkswagen","natural",
+                                            "prem_rec","front_drive","auto_manual","two_door","fourdr_SUV")]
+
+model_2 <- lm(log(MSRP)~.,car_glm)
+plot(model_2)
+
+```
+
+
+
+categorical variable encoding
+
+```{r}
+car_data$BMW <- ifelse(car_data$Make == "BMW",1,0) # if bmw then 1 else(not) 0
+car_data$Audi <- ifelse(car_data$Make=="Audi",1,0)
+car_data$FIAT <- ifelse(car_data$Make=="FIAT",1,0)
+car_data$Mercedes <- ifelse(car_data$Make=="Mercedes-Benz",1,0)
+car_data$Acura <- ifelse(car_data$Make=="Acura",1,0)
+car_data$Alfa_Romeo <- ifelse(car_data$Make=="Alfa Romeo",1,0)
+car_data$Aston_Martin <- ifelse(car_data$Make=="Aston Martin",1,0)
+car_data$Bentley <- ifelse(car_data$Make=="Bentley",1,0)
+car_data$Bugatti <- ifelse(car_data$Make=="Bugatti",1,0)
+car_data$Buick <- ifelse(car_data$Make=="Buick",1,0)
+car_data$Cadillac <- ifelse(car_data$Make=="Cadillac",1,0)
+car_data$Chevrolet <- ifelse(car_data$Make=="Chevrolet",1,0)
+car_data$Chrysler <- ifelse(car_data$Make=="Chrysler",1,0)
+car_data$Dodge <- ifelse(car_data$Make=="Dodge",1,0)
+car_data$Ferrari <- ifelse(car_data$Make=="Ferrari",1,0)
+car_data$Ford <- ifelse(car_data$Make=="Ford",1,0)
+car_data$Genesis <- ifelse(car_data$Make=="Genesis",1,0)
+car_data$GMC <- ifelse(car_data$Make=="GMC",1,0)
+car_data$Honda <- ifelse(car_data$Make=="Honda",1,0)
+car_data$Land_Rover <- ifelse(car_data$Make=="Land Rover",1,0)
+car_data$Lamborghini <- ifelse(car_data$Make=="Lamborghini",1,0)
+car_data$Maybach <- ifelse(car_data$Make=="Maybach",1,0)
+car_data$Hummer <- ifelse(car_data$Make=="Hummer",1,0)
+car_data$Hyundai <- ifelse(car_data$Make=="Hyundai",1,0)
+car_data$Infiniti <- ifelse(car_data$Make=="Infiniti",1,0)
+car_data$Kia <- ifelse(car_data$Make=="Kia",1,0)
+car_data$Mazda <- ifelse(car_data$Make=="Mazda",1,0)
+car_data$Maserati <- ifelse(car_data$Make=="Maserati",1,0)
+car_data$Lotus <- ifelse(car_data$Make=="Lotus",1,0)
+car_data$Lincoln <- ifelse(car_data$Make=="Lincoln",1,0)
+car_data$Lexus <- ifelse(car_data$Make=="Lexus",1,0)
+car_data$McLaren <- ifelse(car_data$Make=="McLaren",1,0)
+car_data$Mitsubishi <- ifelse(car_data$Make=="Mitsubishi",1,0)
+car_data$Nissan <- ifelse(car_data$Make=="Nissan",1,0)
+car_data$Oldsmobile <- ifelse(car_data$Make=="Oldsmobile",1,0)
+car_data$Plymouth <- ifelse(car_data$Make=="Plymouth",1,0)
+car_data$Saab <- ifelse(car_data$Make=="Saab",1,0)
+car_data$Rolls_Royce <- ifelse(car_data$Make=="Rolls-Royce",1,0)
+car_data$Porsche <- ifelse(car_data$Make=="Porsche",1,0)
+car_data$Pontiac <- ifelse(car_data$Make=="Pontiac",1,0)
+car_data$Subaru <- ifelse(car_data$Make=="Subaru",1,0)
+car_data$Suzuki <- ifelse(car_data$Make=="Suzuki",1,0)
+car_data$Tesla <- ifelse(car_data$Make=="Tesla",1,0)
+car_data$Toyota <- ifelse(car_data$Make=="Toyota",1,0)
+car_data$Volkswagen <- ifelse(car_data$Make=="Volkswagen",1,0)
+car_data$Volvo <- ifelse(car_data$Make=="Volvo",1,0)
+car_data$Scion <- ifelse(car_data$Make=="Scion",1,0)
+car_data$Spyker <- ifelse(car_data$Make=="Spyker",1,0)
+
+```
+
+
+```{r}
+# levels(car_data$Engine.Fuel.Type)
+# 
+ car_data$diesel <- ifelse(car_data$Engine.Fuel.Type == "diesel",1,0)
+ car_data$flex_prem_rec <- ifelse(car_data$Engine.Fuel.Type=="flex-fuel (premium unleaded recommended/E85)",1,0)
+ car_data$electric <- ifelse(car_data$Engine.Fuel.Type=="electric",1,0)
+ car_data$flex_unleaded <- ifelse(car_data$Engine.Fuel.Type=="flex-fuel (unleaded/E85)",1,0)
+ car_data$flex_prem_req <- ifelse(car_data$Engine.Fuel.Type=="flex-fuel (premium unleaded required/E85)",1,0)
+ car_data$flex_fuel_natural <- ifelse(car_data$Engine.Fuel.Type=="flex-fuel (unleaded/natural gas)",1,0)
+ car_data$natural <- ifelse(car_data$Engine.Fuel.Type == "natural gas",1,0)
+ car_data$prem_required <- ifelse(car_data$Engine.Fuel.Type=="premium unleaded (required)",1,0)
+ car_data$prem_rec <- ifelse(car_data$Engine.Fuel.Type=="premium unleaded (recommended)",1,0)
+ car_data$regular_gas <- ifelse(car_data$Engine.Fuel.Type == "regular unleaded",1,0)
+
+```
+
+```{r}
+
+levels(car_data$Driven_Wheels)
+
+car_data$front_drive <- ifelse(car_data$Driven_Wheels == "front wheel drive",1,0)
+car_data$rear_drive <- ifelse(car_data$Driven_Wheels =="rear wheel drive",1,0)
+car_data$four_wheel <- ifelse(car_data$Driven_Wheels == "four wheel drive",1,0)
+car_data$awd <- ifelse(car_data$Driven_Wheels=="all wheel drive",1,0)
+dim(car_data)
+```
+
+```{r}
+
+
+# levels(car_data$Transmission.Type)
+car_data$direct_drive <- ifelse(car_data$Transmission.Type == "DIRECT_DRIVE", 1,0)
+car_data$auto_manual <- ifelse(car_data$Transmission.Type == "AUTOMATED_MANUAL", 1,0)
+car_data$automatic<- ifelse(car_data$Transmission.Type=="AUTOMATIC",1,0)
+car_data$manual<- ifelse(car_data$Transmission.Type=="MANUAL",1,0)
+dim(car_data)
+
+
+```
+
+
+```{r}
+
+
+car_data$two_door <- ifelse(car_data$Number.of.Doors == "2",1,0)
+car_data$four_door <- ifelse(car_data$Number.of.Doors == "4",1,0)
+car_data$three_door <- ifelse(car_data$Number.of.Doors=="3",1,0)
+dim(car_data)
+```
+
+```{r}
+
+
+
+
+car_data$twodr_hatch <- ifelse(car_data$Vehicle.Style=="2dr Hatchback",1,0)
+car_data$twodr_suv <- ifelse(car_data$Vehicle.Style=="2dr SUV",1,0)
+car_data$fourdr_SUV <- ifelse(car_data$Vehicle.Style=="4dr SUV",1,0)
+car_data$cargo_minivan<-ifelse(car_data$Vehicle.Style=="Cargo Minivan",1,0)
+car_data$cargo_van <- ifelse(car_data$Vehicle.Style=="Cargo Van",1,0)
+car_data$ext_cab_pickup <-ifelse(car_data$Vehicle.Style=="Extended Cab Pickup",1,0)
+car_data$coupe<-ifelse(car_data$Vehicle.Style=="Coupe",1,0)
+car_data$pass_van <-ifelse(car_data$Vehicle.Style=="Passenger Van",1,0)
+car_data$crew_pickup <- ifelse(car_data$Vehicle.Style=="Crew Cab Pickup",1,0)
+car_data$reg_pickup <- ifelse(car_data$Vehicle.Style=="Regular Cab Pickup",1,0)
+car_data$convertible <- ifelse(car_data$Vehicle.Style=="Convertible",1,0)
+car_data$suv_notop <- ifelse(car_data$Vehicle.Style=="Convertible SUV",1,0)
+car_data$mini_van_pass <- ifelse(car_data$Vehicle.Style=="Passenger Minivan",1,0)
+car_data$wagon <- ifelse(car_data$Vehicle.Style=="Wagon",1,0)
+car_data$sedan<- ifelse(car_data$Vehicle.Style=="Sedan",1,0)
+car_data$fourdr_hatch<-ifelse(car_data$Vehicle.Style=="4dr Hatchback",1,0)
+#glimpse(car_data) # view the df
+car_data <- car_data[,-c(1, 3, 6, 7,9,10,11)] # rm the model column
+#glimpse(car_data) # sanity check the df
+
+dim(car_data)
+glimpse(car_data)
+```
+
+
+scaling data for use in our Regression models
+```{r}
+car_data$Engine.HP <- as.integer(car_data$Engine.HP)
+car_data$Engine.Cylinders<-as.integer(car_data$Engine.Cylinders)
+car_scaled <- car_data
+
+car_scaled[2:8] <- as.data.frame(scale(car_scaled[2:8]))
+
+```
 
 
 viz: variables in data set
@@ -286,13 +484,16 @@ glimpse(car_data)
 # numerical 
 par(mfrow = c(2,2))
 # city mpg
-plot(log(car_data$city.mpg),log(car_data$MSRP), main = "city mpg")
+plot(car_data$city.mpg,car_data$MSRP, main = "city mpg")
 #hwy mpg
-plot(log(car_data$highway.MPG), log(car_data$MSRP), main = "hwy mpg")
+plot(car_data$highway.MPG, car_data$MSRP, main = "hwy mpg")
 # popularity
-plot(log(car_data$Popularity), log(car_data$MSRP), main = "popular") # this looks irrelevant ?
+plot(car_data$Popularity, car_data$MSRP, main = "popular") # this looks irrelevant ?
+
+plot(car_data$Engine.HP, car_data$MSRP, main="Engine HP")
 
 ```
+
 
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
@@ -344,8 +545,30 @@ plot(car_data$Vehicle.Style, log(car_data$MSRP), main = "vehicle style")
 
 ```
 
-MODEL 
-```{r}
 
+
+
+Feature Selection scaled data - looks like trash
+```{r}
+library(caret)
+glimpse(car_scaled)
+
+set.seed(7)
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+glmnet.fit <- train(MSRP~.,
+                    data = car_scaled,
+                    method = "glmnet",
+                    trControl = fitControl)
+
+glmnet.fit
+opt.pen<- glmnet.fit$finalModel$lambdaOpt
+coef(glmnet.fit$finalModel,opt.pen)
+
+car_glm_scaled <- car_scaled[,!names(car_scaled) %in% c("Ford", "Hummer","Saab","Pontiac","Volkswagen", "Volvo", "Scion","regular_gas", "automatic", "four_door","fourdr_SUV")]
+
+model_fit <- lm(MSRP ~. ,car_glm_scaled)
+summary(model_fit)
+plot(model_fit)
 
 ```
