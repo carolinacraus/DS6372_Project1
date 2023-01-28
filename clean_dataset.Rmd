@@ -202,15 +202,170 @@ car_data <- car_data[,-2] # rm the model column
 ```{r}
 library(tidyverse)
 library(ggplot2)
+
 dim(car_data)
+
 # keeping data from > than year 2000
 car_df <- car_data %>% filter(Year > 2000)
 
-# changing as factor to viz. 
-car_df$Year <- as.factor(car_df$Year)
+car_df <- car_df %>% filter(MSRP <=80000)
+
+car_df$log_MSRP <- log(car_df$MSRP)
+car_df$Year<- as.integer(car_df$Year)
+
+```
 
 
-plot(car_df$Year, log(car_df$MSRP), main = "year")
+Test/Validation split 
+```{r}
+set.seed(7)
+
+trainIndex<-createDataPartition(car_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
+
+training <- car_df[trainIndex,]
+validate <- car_df[-trainIndex,]
 
 
 ```
+
+Simple Model - with Training set of data
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+library(car)
+
+car_model_fit <- lm(log(MSRP)~log(Year)+log(Engine.HP),training)
+
+summary(car_model_fit)
+plot(car_model_fit)
+plot(car_df$MSRP)
+
+```
+
+
+Simple Model - with complete dataset
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+library(car)
+
+car_model_fit2 <- lm(log(MSRP)~log(Year)+log(Engine.HP),car_df)
+
+summary(car_model_fit2)
+plot(car_model_fit2)
+plot(car_df$MSRP)
+
+```
+Objective 1
+- try feat. selection (glm) 
+- split data
+- interpret coef.
+
+- interpret final model (after CV)
+- include hypo tests. (on what)
+- confidence intervals of reg. coef. 
+- mention practical and stat. sign. of the predictors.
+- answer additional questions that are deemed relevant. 
+
+
+Objective 2
+- train/val split OR CV
+- create complex model
+- compare KNN agaisnt complex model created. 
+- gather measures of fit for all models (MSE, R^2, Adj.R, AIC, BIC)
+
+
+
+
+<h1> ask for clarification </h1>
+feat. selection and 5 fold cross validation on entire dataset
+```{r}
+library(caret)
+library(ggcorrplot)
+
+set.seed(7)
+
+fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+glmnet.fit <- train(log(MSRP)~.,
+                    data = car_df,
+                    method = "glmnet",
+                    trControl = fitControl)
+
+
+glmnet.fit
+
+opt.pen<- glmnet.fit$finalModel$lambdaOpt
+coef(glmnet.fit$finalModel,opt.pen)
+
+
+# car_glm <- car_df[,!names(car_df) %in% c("MakeAston Martin","MakeBentley", "MakeBugatti", "MakeFerrari", "MakeGMC",
+#                                          "MakeLamborghini","MakeMaybach", "MakeMcLaren", "MakeRolls-Royce", 
+#                                          "MakeSpyker", "MakeTesla", "Engine.Cylinders6", "Engine.Cylinders16",
+#                                          "Market.CategoryCrossover,Exotic,Luxury,High-Performance",
+#                                          "Market.CategoryCrossover,Exotic,Luxury,Performance",
+#                                          "Market.CategoryExotic,Factory Tuner,High-Performance",
+#                                          "Market.CategoryExotic,Factory Tuner,Luxury,High-Performance",
+#                                          "Market.CategoryExotic,Factory Tuner,Luxury,Performance",
+#                                          "Market.CategoryExotic,Flex Fuel,Factory Tuner,Luxury,High-Performance",
+#                                          "Market.CategoryExotic,Flex Fuel,Luxury,High-Performance",
+#                                          "Market.CategoryExotic,Luxury", "Market.CategoryExotic,Luxury,High-Performance,Hybrid",
+#                                          "Market.CategoryExotic,Luxury,Performance","Market.CategoryFactory Tuner,Luxury",
+#                                          "Market.CategoryFlex Fuel,Factory Tuner,Luxury,High-Performance", "Vehicle.StyleCrew Cab Pickup")]
+# glimpse(car_df)
+# complex_fit <- lm(log(MSRP)~log(as.integer(Year))*log(city.mpg) +log(Engine.HP) ,car_df)
+# summary(complex_fit)
+# plot(complex_fit)
+
+```
+
+
+
+```{r}
+set.seed(7)
+
+fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+glmnet.fit2 <- train(log(MSRP)~.,
+                    data = training,
+                    method = "glmnet",
+                    trControl = fitControl)
+
+
+glmnet.fit2
+
+opt.pen<- glmnet.fit2$finalModel$lambdaOpt
+coef(glmnet.fit2$finalModel,opt.pen)
+
+
+```
+
+
+Complex Model - with training dataset
+```{r}
+
+complex_fit <- lm(log_MSRP~log(Year)+log(Engine.HP),training)
+
+summary(complex_fit)
+plot(complex_fit)
+
+```
+
+
+implement KNN regression (or other model)
+```{r}
+predictors <- training()
+
+# knn = 5
+
+knn5<-knn.reg(Adver[,2:3],test=predictors,y=Adver$sales,k=5)
+pred.surface<-matrix(knn5$pred,301,51)
+plot3d(Adver$TV,Adver$radio,Adver$sales,xlab="TV 5",ylab="Radio 5",zlab="Sales 5")
+surface3d(0:300,0:50,pred.surface,alpha=.4)
+
+
+predictors # dataframe
+knn_training <- training[,-c(1,3,5,6,7,9:11)] 
+knn_validation <- validate[,-c(1,3,5,6,7,9:11)]
+dim(knn_training)
+knn5 <- knn.reg(knn_training, test=knn_validation, y = knn_training$log_MSRP, k = 5)
+pred.surface<- matrix(knn5$pred,7496,8)
+plot3d(knn_training$log_MSRP)
+```
+
+
+
