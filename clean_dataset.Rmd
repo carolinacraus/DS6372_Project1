@@ -348,23 +348,7 @@ plot(complex_fit)
 
 implement KNN regression (or other model)
 ```{r}
-predictors <- training()
 
-# knn = 5
-
-knn5<-knn.reg(Adver[,2:3],test=predictors,y=Adver$sales,k=5)
-pred.surface<-matrix(knn5$pred,301,51)
-plot3d(Adver$TV,Adver$radio,Adver$sales,xlab="TV 5",ylab="Radio 5",zlab="Sales 5")
-surface3d(0:300,0:50,pred.surface,alpha=.4)
-
-
-predictors # dataframe
-knn_training <- training[,-c(1,3,5,6,7,9:11)] 
-knn_validation <- validate[,-c(1,3,5,6,7,9:11)]
-dim(knn_training)
-knn5 <- knn.reg(knn_training, test=knn_validation, y = knn_training$log_MSRP, k = 5)
-pred.surface<- matrix(knn5$pred,7496,8)
-plot3d(knn_training$log_MSRP)
 ```
 
 
