@@ -17,7 +17,12 @@ output:
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(tidyverse)
 library(naniar)
-
+library(caret)
+library(ggcorrplot)
+library(FNN)
+library(car)
+library(ggplot2)
+library(rgl)
 dataset <- read.csv("C:/Users/Joey/Desktop/applied-stats/datasets/data1.csv")
 
 #glimpse(dataset) # looking at the var types of each
@@ -200,23 +205,47 @@ car_data <- car_data[,-2] # rm the model column
 ```
 
 ```{r}
-library(tidyverse)
-library(ggplot2)
 
-dim(car_data)
+car_df <- car_data
 
 # keeping data from > than year 2000
 car_df <- car_data %>% filter(Year > 2000)
+ 
+car_df <- car_df %>% filter(MSRP <=90000)
 
-car_df <- car_df %>% filter(MSRP <=80000)
+# filter out electric models
+car_df <- car_df%>% filter(Engine.Fuel.Type != "electric")
 
+# adjust var types so that they work with our functions below. 
 car_df$log_MSRP <- log(car_df$MSRP)
-car_df$Year<- as.integer(car_df$Year)
+car_df$Year <- as.double(car_df$Year)
+car_df$city.mpg<-as.double(car_df$city.mpg)
+car_df$highway.MPG<-as.double(car_df$highway.MPG)
+car_df$Engine.Cylinders<-as.factor(car_df$Engine.Cylinders)
+car_df$Engine.HP<-as.double(car_df$Engine.HP)
+levels(car_df$Make)
+
 
 ```
 
 
-Test/Validation split 
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
+
+# removing no-numerical categories 
+car_data_correlations <- car_df[,-c(1, 3,5,6,7,9,10,11)]
+
+
+corr_data <- cor(car_data_correlations)
+
+
+ggcorrplot(corr_data, outline.color = "black", lab = TRUE)
+```
+
+
+
+
+<h3>Test/Validation split on cleaned data</h3>
 ```{r}
 set.seed(7)
 
@@ -228,22 +257,30 @@ validate <- car_df[-trainIndex,]
 
 ```
 
-Simple Model - with Training set of data
+
+<h3>Training Data - Simple Model</h3>
+
+- No Feature Selection 
+- Used Correlative plot
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
-library(car)
 
-car_model_fit <- lm(log(MSRP)~log(Year)+log(Engine.HP),training)
+car_model_fit <- lm(log(MSRP)~log(Year)+log(Engine.HP), training)
 
+# variance inflation factor
+vif(car_model_fit)
+
+# coef. 
 summary(car_model_fit)
+
+# diagnostics
 plot(car_model_fit)
-plot(car_df$MSRP)
 
 ```
 
 
-Simple Model - with complete dataset
+<h3>Simple Model - non-split data set</h3>
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
-library(car)
+
 
 car_model_fit2 <- lm(log(MSRP)~log(Year)+log(Engine.HP),car_df)
 
@@ -252,6 +289,8 @@ plot(car_model_fit2)
 plot(car_df$MSRP)
 
 ```
+
+
 Objective 1
 - try feat. selection (glm) 
 - split data
@@ -267,33 +306,36 @@ Objective 1
 Objective 2
 - train/val split OR CV
 - create complex model
-- compare KNN agaisnt complex model created. 
+- compare KNN against complex model created. 
 - gather measures of fit for all models (MSE, R^2, Adj.R, AIC, BIC)
 
 
 
 
-<h1> ask for clarification </h1>
-feat. selection and 5 fold cross validation on entire dataset
+<center><h1> ask for clarification </h1></center>
+
+<h4>feat. selection with GLMNET and 5 fold cross validation on entire data set</h4>
 ```{r}
-library(caret)
-library(ggcorrplot)
 
-set.seed(7)
+# 
+# set.seed(7)
+# 
+# fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+# glmnet.fit <- train(log(MSRP)~.,
+#                     data = car_df,
+#                     method = "glmnet",
+#                     trControl = fitControl)
+# 
+# 
+# glmnet.fit
+# 
+# plot(glmnet.fit)
+# opt.pen<- glmnet.fit$finalModel$lambdaOpt
+# coef(glmnet.fit$finalModel,opt.pen)
+# 
+# summary(lm(log(MSRP)~., car_df))
 
-fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
-glmnet.fit <- train(log(MSRP)~.,
-                    data = car_df,
-                    method = "glmnet",
-                    trControl = fitControl)
-
-
-glmnet.fit
-
-opt.pen<- glmnet.fit$finalModel$lambdaOpt
-coef(glmnet.fit$finalModel,opt.pen)
-
-
+# code to remove the features that glmnet didn't select
 # car_glm <- car_df[,!names(car_df) %in% c("MakeAston Martin","MakeBentley", "MakeBugatti", "MakeFerrari", "MakeGMC",
 #                                          "MakeLamborghini","MakeMaybach", "MakeMcLaren", "MakeRolls-Royce", 
 #                                          "MakeSpyker", "MakeTesla", "Engine.Cylinders6", "Engine.Cylinders16",
@@ -315,7 +357,7 @@ coef(glmnet.fit$finalModel,opt.pen)
 ```
 
 
-
+<h4>feat. selection with GLMNET and 5 fold cross validation on TRAINING DATASET</h4>
 ```{r}
 set.seed(7)
 
@@ -323,22 +365,27 @@ fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
 glmnet.fit2 <- train(log(MSRP)~.,
                     data = training,
                     method = "glmnet",
-                    trControl = fitControl)
+                    trControl = fitControl2)
 
 
 glmnet.fit2
+plot(glmnet.fit2)
+opt.pen2<- glmnet.fit2$finalModel$lambdaOpt1
+coef(glmnet.fit2$finalModel,opt.pen2)
 
-opt.pen<- glmnet.fit2$finalModel$lambdaOpt
-coef(glmnet.fit2$finalModel,opt.pen)
+# summary(lm(log(MSRP)~., training))
+
 
 
 ```
 
 
-Complex Model - with training dataset
+<h4>Complex Model - with training data set</h4>
+- no use of feature selection 
+- not completely sure how to proceed using the glmnet results or "what" to make more complicated other than intuitive interactions
 ```{r}
-
-complex_fit <- lm(log_MSRP~log(Year)+log(Engine.HP),training)
+glimpse(training)
+complex_fit <- lm(log_MSRP~log(Year)*Market.Category +log(Engine.HP),training)
 
 summary(complex_fit)
 plot(complex_fit)
@@ -346,8 +393,40 @@ plot(complex_fit)
 ```
 
 
-implement KNN regression (or other model)
+<h4>implement KNN regression (or other model)</h4>
 ```{r}
+
+
+#removing non-numerical 
+training2 <- training[,-c(1,3,5:7,9:11)]
+
+validate2 <- validate[,-c(1,3,5:7,9:11)]
+
+reg1<- knn.reg(train = training2, test = validate2, y=training2$MSRP, k=5)
+
+
+```
+
+
+
+<h4> 5 fold cv and training model using knn </h4>
+```{r}
+# 5 fold CV 
+fitControl2<-trainControl(method="repeatedcv", number = 5, repeats=1)
+
+# training model with 5 fold CV
+knn.fit<-train(log(MSRP)~log(Year)+log(Engine.HP),
+               data = training,
+               method = "knn",
+               trControl = fitControl2)
+
+plot(knn.fit)
+knn.fit # table of k and stats
+
+preds<- predict(knn.fit, validate2)
+pred.surface<- matrix(preds)
+plot3d(training$Year,training$MSRP,training$Engine.HP)
+#surface3d(pred.surface, alpha=.4) # how can we use surface with variables? or do we NEED to define columns/rows etc?
 
 ```
 
