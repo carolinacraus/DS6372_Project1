@@ -282,7 +282,7 @@ plot(car_model_fit)
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 
-car_model_fit2 <- lm(log(MSRP)~log(Year)+log(Engine.HP),car_df)
+car_model_fit2 <- lm(log(MSRP)~Year+log(Engine.HP),car_df)
 
 summary(car_model_fit2)
 plot(car_model_fit2)
@@ -314,55 +314,13 @@ Objective 2
 
 <center><h1> ask for clarification </h1></center>
 
-<h4>feat. selection with GLMNET and 5 fold cross validation on entire data set</h4>
-```{r}
-
-# 
-# set.seed(7)
-# 
-# fitControl <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
-# glmnet.fit <- train(log(MSRP)~.,
-#                     data = car_df,
-#                     method = "glmnet",
-#                     trControl = fitControl)
-# 
-# 
-# glmnet.fit
-# 
-# plot(glmnet.fit)
-# opt.pen<- glmnet.fit$finalModel$lambdaOpt
-# coef(glmnet.fit$finalModel,opt.pen)
-# 
-# summary(lm(log(MSRP)~., car_df))
-
-# code to remove the features that glmnet didn't select
-# car_glm <- car_df[,!names(car_df) %in% c("MakeAston Martin","MakeBentley", "MakeBugatti", "MakeFerrari", "MakeGMC",
-#                                          "MakeLamborghini","MakeMaybach", "MakeMcLaren", "MakeRolls-Royce", 
-#                                          "MakeSpyker", "MakeTesla", "Engine.Cylinders6", "Engine.Cylinders16",
-#                                          "Market.CategoryCrossover,Exotic,Luxury,High-Performance",
-#                                          "Market.CategoryCrossover,Exotic,Luxury,Performance",
-#                                          "Market.CategoryExotic,Factory Tuner,High-Performance",
-#                                          "Market.CategoryExotic,Factory Tuner,Luxury,High-Performance",
-#                                          "Market.CategoryExotic,Factory Tuner,Luxury,Performance",
-#                                          "Market.CategoryExotic,Flex Fuel,Factory Tuner,Luxury,High-Performance",
-#                                          "Market.CategoryExotic,Flex Fuel,Luxury,High-Performance",
-#                                          "Market.CategoryExotic,Luxury", "Market.CategoryExotic,Luxury,High-Performance,Hybrid",
-#                                          "Market.CategoryExotic,Luxury,Performance","Market.CategoryFactory Tuner,Luxury",
-#                                          "Market.CategoryFlex Fuel,Factory Tuner,Luxury,High-Performance", "Vehicle.StyleCrew Cab Pickup")]
-# glimpse(car_df)
-# complex_fit <- lm(log(MSRP)~log(as.integer(Year))*log(city.mpg) +log(Engine.HP) ,car_df)
-# summary(complex_fit)
-# plot(complex_fit)
-
-```
-
 
 <h4>feat. selection with GLMNET and 5 fold cross validation on TRAINING DATASET</h4>
 ```{r}
 set.seed(7)
 
 fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
-glmnet.fit2 <- train(log(MSRP)~.,
+glmnet.fit2 <- train(log_MSRP~.,
                     data = training,
                     method = "glmnet",
                     trControl = fitControl2)
@@ -370,13 +328,51 @@ glmnet.fit2 <- train(log(MSRP)~.,
 
 glmnet.fit2
 plot(glmnet.fit2)
-opt.pen2<- glmnet.fit2$finalModel$lambdaOpt1
+opt.pen2<- glmnet.fit2$finalModel$lambdaOpt
 coef(glmnet.fit2$finalModel,opt.pen2)
 
 # summary(lm(log(MSRP)~., training))
 
 
 
+```
+
+GLM-Net filtered Model - complex model to run with glm-selected
+- extreme outliers
+```{r}
+
+
+glm_df <- training[,!names(training) %in% c("MakeAston Martin", "MakeBentley","MakeBugatti",
+                                                  "MakeFerrari","MakeFord","MakeLamborghini",
+                                                  "MakeMaybach","MakeMcLaren","MakePlymouth",
+                                                  "MakeRolls-Royce","MakeSpyker","MakeTesla","Engine.Fuel.Typeelectric",
+                                                  "Engine.Cylinders4","Engine.Cylinders12","Market.CategoryCrossover,Exotic.Luxury.Performance",
+                                                  "Market.CategoryExotic,Factory Tuner,High-Performance",
+                                                  "Market.CategoryExotic,Factory Tuner,Luxury,High-Performance",
+                                                  "Market.CategoryExotic,Factory Tuner,Luxury,Performance",
+                                                  "Market.CategoryExotic,Flex Fuel,Factory Tuner,Luxury,High-Performance",
+                                                  "Market.CategoryExotic,Flex Fuel,Luxury,High-Performance",
+                                                  "Market.CategoryExotic,Luxury","Market.CategoryExotic,Luxury,High-Performance,Hybrid",
+                                                  "Market.CategoryExotic,Luxury,Performance", "Market.CategoryExotic,Performance",
+                                                  "Market.CategoryFactory Tuner,Luxury",
+                                                  "Market.CategoryFlex Fuel,Factory Tuner,Luxury,High-Performance",
+                                                  "Market.CategoryPerformance,Hybrid")]
+
+summary(glm_df)
+glm_model <- lm(log(MSRP)~., glm_df)
+plot(glm_model)
+summary(glm_model)
+
+cooksD <- cooks.distance(glm_model)
+influential <- cooksD[(cooksD > (3 * mean(cooksD, na.rm = TRUE)))]
+influential
+
+names_of_influential <- names(influential)
+outliers <- glm_df[names_of_influential,]
+glm_without_outliers <- glm_df %>% anti_join(outliers)
+
+model_glm2 <- lm(log(MSRP)~., glm_without_outliers)
+plot(model_glm2)
 ```
 
 
