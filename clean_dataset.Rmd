@@ -11,8 +11,8 @@ output:
 <center><h2>Explanatory Data Analysis</h2></center>
 <hr>
 
-<h4>Loading Data set and inspecting summary statistics as well as missing data:</h4>
-
+<center><h3>Inspecting Summary Statistics and Missing Data:</h3></center>
+The variables in our the data set seem to have the most amount of missing data in Engine.HP, Engine.Cylinders and Number.of.Doors.
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 library(tidyverse)
@@ -23,6 +23,8 @@ library(FNN)
 library(car)
 library(ggplot2)
 library(rgl)
+library(olsrr)
+library(GGally)
 dataset <- read.csv("C:/Users/Joey/Desktop/applied-stats/datasets/data1.csv")
 
 #glimpse(dataset) # looking at the var types of each
@@ -33,36 +35,40 @@ vis_miss(dataset) # viz looking @ missing values
 
 ```
 
-
-
-We can see there is a number of variables that contain NA's
-
-<h4>Var. that contain NA:</h4>
+<hr>
+<h3>NA: Deep Dive</h3>
 
 - Engine.HP = 69
 - Engine.Cylinders = 30
 - Number.of.Doors = 6 
 
-Since many of the missing values seem to be found using any number of automobile spec. websites we will input them into the data set below instead of removing those observations so that we can fully utilize the features and data provided.
+Many of the missing values seem to be found using automobile specification related websites(such as Edmunds, KBB, etc). To ensure we are not just deleting data at random will research the vehicles and input updated values into the data set where applicable so that we can fully utilize the features and data provided.
 
 
-<h4>Number of Doors:</h4>
- All NA values here belong to Tesla Model S and Ferrari FF. We were able to find and input these values. 
+<h3>Number of Doors:</h3>
+The NA values here belong to the Tesla Model S and Ferrari FF.
+We were able to find and input these values successfully. 
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 #updating NA for Doors
 dataset[6931:6935,9] <- 4 # Tesla model S
 dataset[4667,9] <- 2 # Ferrari FF 
-
 ```
 
 
 
-<h4>Engine Cylinders</h4>
+<h3>Engine Cylinders</h3>
 
-The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders.
+Upon investigating the Engine Cylinders we found a couple of reasons for NA values to be present here.
 
-On the EV side of the data set we find the remaining NA values and they have been updated to 0 since electric vehicles do not have engine cylinders. future consideration for a substitute value would be ideal here as the automobile market gains more and more Electric vehicles. This substitute value would help to leverage a way to add accurate predictions and values using this metric when comparing many EV.
+Reason 1:
+- The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders.
+
+Reason 2:
+- Electric Vehicles do not have engine cylinders, so it makes sense that we would find NA values in this group. For consistency in our data set we will update these vehicle types to 0. future consideration for a substitute value would be ideal here as the automobile market gains more and more Electric vehicles. This substitute value would help to leverage a way to add accurate predictions and values using this metric when comparing many EV.
+
+Important Considerations:
+- Engine Cylinders would likely correlate with Engine.HP, and typically cars with Higher engine horsepower (more cylinders) are more expensive (MSRP). Electric vehicles such as Tesla models are listed as 0 cylinders and this could prove to be problematic in a prediction model because the value of Tesla would be high, but the HP/cylinders would be lower to the gas vehicle counter parts.
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
@@ -77,19 +83,9 @@ dataset[8696:8715, 6] <- 0 # mazda rotary engine RX7 AND RX8
 ```
 
 
-<h4>Engine HP</h4>
+<h3>Engine HP</h3>
 
-Certain cars specifically electric vehicles do not report "horsepower" but instead will report Kilowatts (KW)
-so we expect to see many Missing values when dealing with Electric vehicles. 
-
-Exceptions to this:
-Chevy Spark - GM reports 140 HP
-i3 - BMW reports 170-181 HP
-i-MiEV - Mitsubishi reports 66 HP
-e-golf - Volkswagen reports 115 HP
-
-we could possibly create a ML algo to predict what the HP is... but since they are reported on a different scale, and are of a different type of vehicle
-maybe it would be better off changing the "missing values" into 0s. 
+Certain cars specifically electric vehicles do not report "horsepower" but instead will report Kilowatts (KW). We expect to see many Missing values when dealing with Electric vehicles and to remedy this we have researched KW to HP conversions for specific models in attempt to keep the data intact, accurate and usable. 
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 dataset[8374,5] <- 154 # toyota RAV4-EV
@@ -130,11 +126,11 @@ car_data <- dataset
 ```
 
 
-<h4>"Unknown" Data values in the Transmission.Type category</h4>
-Values of "Unknown" were discovered in the data. These Unknown values are publicly and easily accessible information and we 
-were able to update the database with the proper assignments.
 
 
+<h3>"Unknown" Data Values:</h3>
+During the cleaning of our data we discovered "Unknown" values in the Transmission.Type category.
+These Unknown values are publicly and easily accessible information and we were able to update the database with the proper assignments after some research.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 car_data[1290:1291, 7] <- "AUTOMATIC" # oldsmobile achieva
 car_data[4692,7]<- "MANUAL" # cheaper firebird
@@ -149,103 +145,165 @@ car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ra
 
 ```
 
+
 There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
-car_data$Make <- as.factor(car_data$Make)
-car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type) # chr
-car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # dbl 
-car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders) # dbl
-car_data$Transmission.Type<-as.factor(car_data$Transmission.Type) # chr
-car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels) # chr
-car_data$Number.of.Doors<- as.integer(car_data$Number.of.Doors) # dbl
-car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size) # chr
-car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style) # chr
-car_data$Market.Category<-as.factor(car_data$Market.Category) # chr
+# car_data$Make <- as.factor(car_data$Make)
+# car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type) # chr
+# car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # dbl 
+# car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders) # dbl
+# car_data$Transmission.Type<-as.factor(car_data$Transmission.Type) # chr
+# car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels) # chr
+# car_data$Number.of.Doors<- as.integer(car_data$Number.of.Doors) # dbl
+# car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size) # chr
+# car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style) # chr
+# car_data$Market.Category<-as.factor(car_data$Market.Category) # chr
 ```
 
 
+<h3>"Not Applicable" Values:</h3>
 
-
-<h4>"Not Applicable" Values:</h4>
-
-upon investigation of the Market Category section we found many "N/A" values (3,742).
-These values seem to be implicitly add N/A values, which could in fact mean there is no applicable group that it fits into. we
-will change this N/A to "No Category" to avoid any confusion with Missing value data. 
+Upon investigation of the Market.Category section we found many "N/A" values (3,742).
+These values seem to be implicitly added N/A values, which could in fact mean there is no applicable group that it fits into per the source/creation of the data set. We will trust that the vehicles in question truly did not fit into any specific category and change this N/A to "No Category" to avoid any confusion with Missing value data. 
 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 # change so that we can handle the "N/A" which is NOT an NA
 car_data$Market.Category<-as.character(car_data$Market.Category)
-sum(car_data$Market.Category == "N/A") #3742 this is our benchmark 
+#sum(car_data$Market.Category == "N/A") #3742 this is our benchmark 
 
 # reading as not applicable we will change to no category
 car_data$Market.Category[car_data$Market.Category == "N/A"] <- "No Category"
 
 # sanity check should be 0
-sum(car_data$Market.Category == "N/A")
+#sum(car_data$Market.Category == "N/A")
 
 # change to match rest of data type (factor)
 car_data$Market.Category<-as.factor(car_data$Market.Category)
 
 ```
 
-Typo Audi MPG
+<h3>Typo</h3>
+
+During some preliminary visualization of the data we discovered an outlier in Audi MPG.
+We researched and confirmed that this data was incorrect and replaced it with the appropriate value.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 car_data[1120,13] <- 34
 
 ```
 
-Finally we will remove the "model" variable since it presents no obvious value.
+
+Finally we will remove the "model" variable since it presents no obvious value to our data and will not be used as a "predictor".
+
+A NA sanity check will be displayed to ensure we have addressed the values missing in our data set. 
+
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 #glimpse(car_data) # view the df
 car_data <- car_data[,-2] # rm the model column
 #glimpse(car_data) # sanity check the df
 
+vis_miss(car_data)
 ```
 
-```{r}
+<hr>
+<center><h3>Visualization of The Data</h3></center>
+<hr>
+
+<h3>Year / MSRP</h3>
+
+Figure 1.A:
+- Shows us a bi-modal distribution of the Log MSRP values. Upon further investigation and consultation,
+it was uncovered that certain values of the data tend to lose accuracy/reliability. 
+
+Figure 1.B:
+- When we visualize Year (predictor) vs MSRP (response variable) It is apparent to us that data from the year 2000 and older do not follow the trend of data earlier than the year 2000. In a prediction setting this provides evidence to us that we may be dealing with more than 1 population group and it may benefit us to narrow the scope of which our target model/population is targeted towards.
+
+Figure 1.C:
+- This scatter plot illustrates what we would expect to see in terms of the relationship between MSRP and Year which is an increasing trend in price as the year of the car is earlier and earlier (as year grows closer to the current year). 
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data %>% ggplot(aes(log(MSRP)))+
+  geom_histogram() + ggtitle('Figure 1.A')
+
+car_data%>% ggplot(aes(Year, MSRP))+
+  geom_point(aes(color = MSRP <=2000)) + ggtitle('Figure 1.B')
+
+# car_data %>% filter(MSRP < 60000)%>% ggplot(aes(log(MSRP)))+
+#   geom_histogram(aes(fill = Year > 2000)) + ggtitle('Figure 1.C')
+
+car_data%>% filter(MSRP < 90000 & Year >2000) %>% ggplot(aes(Year, MSRP))+
+  geom_point(aes(color = MSRP <=2000)) + ggtitle('Figure 1.C')
+```
+
+
+
+
+
+<h3>Adjustments to dataset</h3>
+Based on the visualizations we will adjust the scope of our dataset to make model and predictions on a more consistent form of data that best represents the population group of the data we have.
+The changes we are making to shape the dataset are the following:
+- Keep data earlier than the year 2000
+
+- Remove data associated with "exotic" types of vehicles which represent astronomical prices
+
+- Filter out electric vehicles 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center', include=FALSE}
 
 car_df <- car_data
 
 # keeping data from > than year 2000
 car_df <- car_data %>% filter(Year > 2000)
  
-car_df <- car_df %>% filter(MSRP <=90000)
+car_df <- car_df %>% filter(MSRP <=75000)
+
+#car_df <- car_df %>% filter(MSRP >=15000)
 
 # filter out electric models
 car_df <- car_df%>% filter(Engine.Fuel.Type != "electric")
 
 # adjust var types so that they work with our functions below. 
 car_df$log_MSRP <- log(car_df$MSRP)
+car_df$log_Engine.HP <- log(car_df$Engine.HP)
+car_df$log_Year <- log(car_df$Year)
 car_df$Year <- as.double(car_df$Year)
 car_df$city.mpg<-as.double(car_df$city.mpg)
 car_df$highway.MPG<-as.double(car_df$highway.MPG)
 car_df$Engine.Cylinders<-as.factor(car_df$Engine.Cylinders)
 car_df$Engine.HP<-as.double(car_df$Engine.HP)
-levels(car_df$Make)
+
 
 
 ```
 
 
+<hr>
+<center><h3> Variable Relationships</h3></center>
+<hr>
+
+<h3>Correlation Heat Map</h3>
+- To visualize the link between variables, we created a correlation heat map graphic .It is used in regression analysis to ascertain whether there is a significant correlation between the independent (predictor) and dependent (response) variables. If there is a significant correlation, it may be possible to forecast the dependent variable using the independent variable. The selection of the regression model and its underlying assumptions can then be guided by this information. 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
+# removing no-numerical categories so that we can viz correlative relationships
+car_data_correlations <- car_df[,-c(1,3,5,6,7,9,10,11)]
 
-# removing no-numerical categories 
-car_data_correlations <- car_df[,-c(1, 3,5,6,7,9,10,11)]
-
-
+# calling cor function to put into var. 
 corr_data <- cor(car_data_correlations)
 
+# generate the plot
+ggcorrplot(corr_data, outline.color = "black", lab = TRUE, title = 'MSRP Correlation Plot')
 
-ggcorrplot(corr_data, outline.color = "black", lab = TRUE)
 ```
 
 
 
+<hr>
+<h3>Test/Validation Split</h3>
 
-<h3>Test/Validation split on cleaned data</h3>
+Before proceeding with model creation it is imperative that we split the data into a test and validation set. 
+The test-Validation splitting of the data enables evaluation of the model's performance on unknown (new) data.
+This aids in avoiding an overfitting model, which happens when a model is too closely fitted to the training set of data and fails to perform well on the test (validation) set. 
 ```{r}
 set.seed(7)
 
@@ -257,37 +315,42 @@ validate <- car_df[-trainIndex,]
 
 ```
 
+<hr>
+<h3><center>Regression Model Creation</center></h3>
+<hr>
 
 <h3>Training Data - Simple Model</h3>
 
-- No Feature Selection 
-- Used Correlative plot
+For the creation/building of this model we looked at correlative relationships in our heat map to determine
+whether there appeared to be a significant correlation between X variables (predictors) and MSRP (response) variables. A significant correlation, means it may be possible to forecast the dependent variable using the independent variable in a regression setting. 
+
+No Feature Selection Algorithms were used to create this model as the objective was to create model with high simplicity, and intuivte relationships. 
+
+Because the model was based on a correlation heat map we included VIF in our statistical outputs to ensure that we do have not created a model with high multicollinearity. 
+
+Interpretation of Coefficients:
+
+- Holding Log(Engine.HP)Constant, a one year increase is associated with a multiplicative change of e^.01245 = 1.013 or 1.3% increase in the median LOG(MSRP) 
+
+- Holding The Year Constant, A doubling of Log(Engine.HP) is associated with a 2^.9 multiplicative change in the median of Log(MSRP)
+
+
+<h3>Simple (Low Complexity) Regression Model</h3>
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
-car_model_fit <- lm(log(MSRP)~log(Year)+log(Engine.HP), training)
+# linear regression model 
+car_model_fit <- lm(log(MSRP)~Year+log(Engine.HP),training)
 
 # variance inflation factor
 vif(car_model_fit)
 
-# coef. 
+# coefficients 
 summary(car_model_fit)
 
 # diagnostics
 plot(car_model_fit)
-
-```
-
-
-<h3>Simple Model - non-split data set</h3>
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-
-
-car_model_fit2 <- lm(log(MSRP)~Year+log(Engine.HP),car_df)
-
-summary(car_model_fit2)
-plot(car_model_fit2)
-plot(car_df$MSRP)
-
+# diagnostic check with resid. histogram. 
+ols_plot_diagnostics(car_model_fit)
 ```
 
 
@@ -336,6 +399,10 @@ coef(glmnet.fit2$finalModel,opt.pen2)
 
 
 ```
+
+
+
+
 
 GLM-Net filtered Model - complex model to run with glm-selected
 - extreme outliers
@@ -419,10 +486,14 @@ knn.fit<-train(log(MSRP)~log(Year)+log(Engine.HP),
 plot(knn.fit)
 knn.fit # table of k and stats
 
+x = training$log_MSRP
+y = log(training$Year)
+z = log(training$Engine.HP)
+
 preds<- predict(knn.fit, validate2)
 pred.surface<- matrix(preds)
 plot3d(training$Year,training$MSRP,training$Engine.HP)
-#surface3d(pred.surface, alpha=.4) # how can we use surface with variables? or do we NEED to define columns/rows etc?
+#surface3d(x,y,z, alpha=.4) # how can we use surface with variables? or do we NEED to define columns/rows etc?
 
 ```
 
