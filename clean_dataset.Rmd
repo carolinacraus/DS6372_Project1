@@ -606,7 +606,7 @@ We reject the null hypothesis. There is sufficient evidence at a significance le
 training_slr <- training[,-11]
 validate_slr <- validate[,-11]
 # linear regression model 
-car_model_fit <- lm(log_MSRP~Year+log(Engine.HP)+Popularity,training_slr)
+car_model_fit <- lm(log_MSRP~Year+log(Engine.HP),training_slr)
 
 # variance inflation factor
 vif(car_model_fit)
