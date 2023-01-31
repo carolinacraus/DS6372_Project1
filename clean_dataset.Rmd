@@ -25,6 +25,8 @@ library(ggplot2)
 library(rgl)
 library(olsrr)
 library(GGally)
+library(leaps)
+library(tree)
 dataset <- read.csv("C:/Users/Joey/Desktop/applied-stats/datasets/data1.csv")
 
 #glimpse(dataset) # looking at the var types of each
@@ -554,8 +556,7 @@ trainIndex<-createDataPartition(car_df$log_MSRP,p=.8,list=F)  #p: proportion of 
 training <- car_df[trainIndex,]
 validate <- car_df[-trainIndex,]
 
-# backup_df
-
+# backup_df 
 set.seed(7)
 
 trainIndex_b<-createDataPartition(backup_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
@@ -563,6 +564,25 @@ trainIndex_b<-createDataPartition(backup_df$log_MSRP,p=.8,list=F)  #p: proportio
 training_b <- backup_df[trainIndex,]
 validate_b <- backup_df[-trainIndex,]
 
+
+# test/train/validation split for objective 2
+set.seed(7)
+train_df <- .8
+valid_df <- .1
+test_df <- .1
+
+sampleSizeTrain <- floor(train_df * nrow(backup_df))
+sampleSizeValid <- floor(valid_df * nrow(backup_df))
+sampleSizeTest <- floor(test_df * nrow(backup_df))
+
+index_train<- sort(sample(seq_len(nrow(backup_df)), size = sampleSizeTrain))
+index_not_train<-setdiff(seq_len(nrow(backup_df)),index_train)
+index_valid <- sort(sample(seq_len(nrow(backup_df)),size = sampleSizeValid))
+index_test <- sort(sample(seq_len(nrow(backup_df)),size=sampleSizeTest))
+
+car_train <- backup_df[index_train,]
+car_valid <- backup_df[index_valid,]
+car_test <- backup_df[index_test,]
 
 ```
 
@@ -598,18 +618,28 @@ vif(car_model_fit)
 # coefficients 
 summary(car_model_fit)
 
+# confidence intervals for coef. 
+confint.lm(car_model_fit)
+
 # diagnostics
 plot(car_model_fit)
 # diagnostic check with resid. histogram. 
 ols_plot_diagnostics(car_model_fit)
+
+# functions for returning RMSE and ASE 
+RMSE_func<- function(error){sqrt(mean(error^2))}
+ASE_func <- function(error){mean(error^2)}
+
+RMSE_func(car_model_fit$residuals)
+ASE_func(car_model_fit$residuals)
+
 ```
 
 
 
 <hr>
-
 <h4>Feature Selection & Cross Validation</h4>
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 set.seed(7)
 
 lambda <- seq(0,.37, by = .01)
@@ -637,8 +667,7 @@ coef(glmnet.fit2$finalModel,opt.pen2)
 
 
 <h3>GLMNET Selected Model</h3>
-
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 # remove features not selected by LASSO 
 glm_df <- training[,!names(training) %in% c("Engine.Cylinders4","Engine.Cylinders12","Engine.Cylinders16",
                                             "Driven_Wheelsrear wheel drive", "flex_Fuel_intake",
@@ -669,12 +698,12 @@ summary(glm_model_2)
 ```
 
 
-<h4>Complex Model - with training data set</h4>
+<h4>Complex Model</h4>
 - no use of feature selection 
 - not completely sure how to proceed using the glmnet results or "what" to make more complicated other than intuitive interactions
-```{r}
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+
 # add srt_p
-glimpse(training_b)
 complex_fit <- lm(log_MSRP~Year*Engine.Fuel.Type + log(Engine.HP) + Year*Engine.HP,training_b) # note not using training
 
 summary(complex_fit)
@@ -684,47 +713,120 @@ ols_plot_diagnostics(complex_fit)
 ```
 
 
-<h4>implement KNN regression (or other model)</h4>
-```{r}
-# removing non-numerical 
-training2 <- training_b[,-c(1,3,5:7,9:11)]
-validate2 <- validate_b[,-c(1,3,5:7,9:11)]
+<h3>Non-parametric | KNN Regression</h3>
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
-knn_reg <- knn.reg(train = training2, test = validate2, y=training2$MSRP, k=5)
+np_train <- car_train[,-c(1,3,5:7,9:11,15)]
+np_test <- car_test[,-c(1,3,5:7,9:11,15)]
+np_valid <- car_test[,-c(1,3,5:7,9:11,15)]
+
+# np_train <- training_b[,-c(1,3,5:7,9:11,15)]
+# np_test <- validate_b[,-c(1,3,5:7,9:11,15)]
+
+# training data split into input and output
+train_x = np_train[,!colnames(np_train)== "log_MSRP"]
+train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
+
+# validation set split into input and output
+test_x = np_test[,!colnames(np_test) == "log_MSRP"]
+test_y = as.numeric(unlist(np_test[,colnames(np_test)=="log_MSRP"]))
+
+#knn regression
+knn_reg = knnreg(train_x, train_y)
+
+pred_y_knn = predict(knn_reg, test_x)
+
+mse = mean((test_y - pred_y_knn)^2)
+mae = MAE(test_y, pred_y_knn)
+rmse = RMSE(test_y, pred_y_knn)
+cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
+```
+
+
+Non-Parametric | knn 
+```{r}
 
 
 ```
 
 
+<h3>Non-Parametric | Regression Tree</h3>
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# tree
+tree= rpart::rpart(log_MSRP~.,data = np_train, method = "anova")
+rpart::printcp(tree)
+rpart::plotcp(tree)
+summary(tree)
+plot(tree, uniform = TRUE,
+     main = "classifcation tree for MSRP")
+text(tree, use.n = TRUE, all = TRUE, cex=.8)
 
-<h4> 5 fold CV and training model using knn </h4>
-```{r}
-
-# 5 fold CV 
-fitControl2<-trainControl(method="repeatedcv", number = 5, repeats=1)
-
-# training model with 5 fold CV
-knn.fit<-train(log(MSRP)~log(Year)+log(Engine.HP),
-               data = training_b,
-               method = "knn",
-               trControl = fitControl2)
-
-plot(knn.fit)
-knn.fit # table of k and stats
-
-preds <- predict(knn.fit,validate2)
-
-pred.surface<- matrix(preds)
-
-plot3d(training$Year,training$MSRP,training$Engine.HP)
+# prediction
+pred_y = predict(tree, test_x)
+plot(pred_y, test_y)
+abline(0,1)
+sqrt(mean((pred_y - test_y)^2))
+print(data.frame(test_y,pred_y))
 
 
+# regression analysis 
+mse = mean((test_y-pred_y)^2)
+mae = MAE(test_y,pred_y)
+rmse = RMSE(test_y,pred_y)
 
-val_predictions <- predict(knn.fit, newdata = validate2)
-# Root MSE 
-# MAE
-# plot the coefficents in glmnet
+cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
+
+# viz the pred
+x = 1:length(test_y)
+plot(x,test_y, col = "red", type = "l", lwd = 2,
+     main = "MSRP test data prediction")
+lines(x, pred_y, col = "blue", lwd = 2)
+legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
+       fill = c("red", "blue"), col = 2:3, adj = c(0,0.6))
+
 ```
 
 
+Non-Parametric | Regression Tree Validation
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# training data split into input and output
+train_x = np_train[,!colnames(np_train)== "log_MSRP"]
+train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
 
+# validation set split into input and output
+test_x = np_valid[,!colnames(np_valid) == "log_MSRP"]
+test_y = as.numeric(unlist(np_valid[,colnames(np_valid)=="log_MSRP"]))
+
+
+# tree
+tree= rpart::rpart(log_MSRP~.,data = np_train, method = "anova")
+rpart::printcp(tree)
+rpart::plotcp(tree)
+summary(tree)
+plot(tree, uniform = TRUE,
+     main = "classifcation tree for MSRP")
+text(tree, use.n = TRUE, all = TRUE, cex=.8)
+
+# prediction
+pred_y = predict(tree, test_x)
+plot(pred_y, test_y)
+abline(0,1)
+sqrt(mean((pred_y - test_y)^2))
+print(data.frame(test_y,pred_y))
+
+
+# regression analysis 
+mse = mean((test_y-pred_y)^2)
+mae = MAE(test_y,pred_y)
+rmse = RMSE(test_y,pred_y)
+
+cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
+
+x = 1:length(test_y)
+plot(x,test_y, col = "red", type = "l", lwd = 2,
+     main = "MSRP test data prediction")
+lines(x, pred_y, col = "blue", lwd = 2)
+legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
+       fill = c("red", "blue"), col = 2:3, adj = c(0,0.6))
+
+```
