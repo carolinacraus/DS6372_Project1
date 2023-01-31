@@ -241,9 +241,9 @@ car_data%>% filter(MSRP < 90000 & Year >2000) %>% ggplot(aes(Year, MSRP))+
 
 
 
-<h3>Adjustments to dataset</h3>
-Based on the visualizations we will adjust the scope of our dataset to make model and predictions on a more consistent form of data that best represents the population group of the data we have.
-The changes we are making to shape the dataset are the following:
+<h3>Adjustments to The Dataset</h3>
+Based on the visualizations we will adjust the scope of our data set to make model and predictions on a more consistent form of data that best represents the population group of the data we have.
+The changes we are making to shape the data set are the following:
 - Keep data earlier than the year 2000
 
 - Remove data associated with "exotic" types of vehicles which represent astronomical prices
@@ -277,9 +277,15 @@ backup_df <- car_df
 
 ```
 
+<hr>
+<center><h3>Feature Engineering</h3></center>
+<hr>
 
+This data set contains multiple categorical variables that contain multiple levels. When utilizing a feature selection tool
+such as glmnet the result can leave us with a lot of noise. So that we can work with a less noisy data set we have created new 
+variables to narrow our selection of features.
 
-engineering features - vehicle.style
+<h3>Engineering - Vehicle Style</h3>
 ```{r}
 
 car_df$Style_Van <- as.factor(ifelse(car_df$Vehicle.Style == "Cargo Minivan"|
@@ -312,7 +318,8 @@ car_df <- car_df[,-11]
 
 ```
 
-engineering features - market.category
+
+<h3>Engineering - Market Category</h3>
 ```{r}
 
 
@@ -404,7 +411,7 @@ car_df <- car_df[,-9]
 ```
 
 
-engineer features - fuel type 
+<h3>Engineering - Fuel Type</h3>
 ```{r}
 
 car_df$flex_Fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "flex-fuel (premium unleaded recommended/E85"|
@@ -428,7 +435,7 @@ car_df <- car_df[,-3]
 ```
 
 
-feat engineering - make
+<h3>Engineering - Make</h3>
 ```{r}
 
 car_df$German_Build <- as.double(ifelse(car_df$Make == "BMW"|
@@ -494,30 +501,6 @@ car_df <- car_df[,-1]
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <hr>
 <center><h3> Variable Relationships</h3></center>
 <hr>
@@ -546,9 +529,10 @@ ggcorrplot(corr_data, outline.color = "black", lab = TRUE, title = 'MSRP Correla
 
 Before proceeding with model creation it is imperative that we split the data into a test and validation set. 
 The test-Validation splitting of the data enables evaluation of the model's performance on unknown (new) data.
-This aids in avoiding an overfitting model, which happens when a model is too closely fitted to the training set of data and fails to perform well on the test (validation) set. 
+This aids in avoiding an over fitting model, which happens when a model is too closely fitted to the training 
+set of data and fails to perform well on the test (validation) set. 
 ```{r}
-# car_df
+# car_df which includes feat engineering
 set.seed(7)
 
 trainIndex<-createDataPartition(car_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
@@ -556,7 +540,8 @@ trainIndex<-createDataPartition(car_df$log_MSRP,p=.8,list=F)  #p: proportion of 
 training <- car_df[trainIndex,]
 validate <- car_df[-trainIndex,]
 
-# backup_df 
+
+# backup_df no feat engineering
 set.seed(7)
 
 trainIndex_b<-createDataPartition(backup_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
@@ -565,7 +550,7 @@ training_b <- backup_df[trainIndex,]
 validate_b <- backup_df[-trainIndex,]
 
 
-# test/train/validation split for objective 2
+# test/train/validation split for validation sections
 set.seed(7)
 train_df <- .8
 valid_df <- .1
@@ -608,9 +593,10 @@ Interpretation of Coefficients:
 
 <h3>Simple (Low Complexity) Regression Model</h3>
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
-
+training_slr <- training[,-11]
+validate_slr <- validate[,-11]
 # linear regression model 
-car_model_fit <- lm(log(MSRP)~Year+log(Engine.HP)+Popularity,training)
+car_model_fit <- lm(log_MSRP~Year+log(Engine.HP)+Popularity,training_slr)
 
 # variance inflation factor
 vif(car_model_fit)
@@ -626,26 +612,40 @@ plot(car_model_fit)
 # diagnostic check with resid. histogram. 
 ols_plot_diagnostics(car_model_fit)
 
-# functions for returning RMSE and ASE 
-RMSE_func<- function(error){sqrt(mean(error^2))}
+# prediction on validation data 
+car_model_prediction <- predict(car_model_fit, interval = "predict", newdata = validate_slr)
+
+pred_RMSE <- sqrt(mean((car_model_prediction[,1] - validate_slr$log_MSRP)^2))
+
+
+# # functions for returning RMSE and ASE 
+# RMSE_func<- function(error){sqrt(mean(error^2))}
 ASE_func <- function(error){mean(error^2)}
+# 
+# RMSE_func(car_model_fit$residuals)
+ase <- ASE_func(car_model_fit$residuals)
 
-RMSE_func(car_model_fit$residuals)
-ASE_func(car_model_fit$residuals)
 
+cat("RMSE: ", pred_RMSE, "ASE: ", ase)
 ```
+
+
 
 
 
 <hr>
 <h4>Feature Selection & Cross Validation</h4>
+The following code chunk will run 5 fold cross validation as well as LASSO feature selection.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 set.seed(7)
 
-lambda <- seq(0,.37, by = .01)
+training_glm <- training[,-11]
+validate_glm <-validate[,-11]
+
+lambda <- seq(0,.3, by = .01)
 fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
 glmnet.fit2 <- train(log_MSRP~.,
-                    data = training,
+                    data = training_glm,
                     method = "glmnet",
                     trControl = fitControl2,
                     tuneGrid = expand.grid(alpha = 1, lambda = lambda))
@@ -656,10 +656,6 @@ plot(glmnet.fit2)
 opt.pen2<- glmnet.fit2$finalModel$lambdaOpt
 coef(glmnet.fit2$finalModel,opt.pen2)
 
-# summary(lm(log(MSRP)~., training))
-
-
-
 ```
 
 
@@ -667,49 +663,68 @@ coef(glmnet.fit2$finalModel,opt.pen2)
 
 
 <h3>GLMNET Selected Model</h3>
+Using the results from our LASSO model we will use the suggested features to create a new regression model:
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 # remove features not selected by LASSO 
-glm_df <- training[,!names(training) %in% c("Engine.Cylinders4","Engine.Cylinders12","Engine.Cylinders16",
-                                            "Driven_Wheelsrear wheel drive", "flex_Fuel_intake",
+glm_df <- training_glm[,!names(training_glm) %in% c("Engine.Cylinders12","Engine.Cylinders16","Style_Sedan1",
                                             "nat_fuel_intake","electric_intake","french_build",
-                                            "Netherlands_build", "Engine.HP","log_MSRP")]
+                                            "Netherlands_build", "Engine.HP")]
 
 # create glm model
-glm_model <- lm(log(MSRP)~., glm_df)
+glm_model <- lm(log_MSRP~., glm_df)
 
 # view diagnostics
-plot(glm_model)
+#plot(glm_model)
 
 summary(glm_model)
 
-cooksD <- cooks.distance(glm_model)
-influential <- cooksD[(cooksD > (3 * mean(cooksD, na.rm = TRUE)))]
-influential
+# cooksD <- cooks.distance(glm_model)
+# influential <- cooksD[(cooksD > (3 * mean(cooksD, na.rm = TRUE)))]
+#influential
 
-names_of_influential <- names(influential)
-outliers <- glm_df[names_of_influential,]
-glm_without_outliers <- glm_df %>% anti_join(outliers)
+# names_of_influential <- names(influential)
+# outliers <- glm_df[names_of_influential,]
+# glm_without_outliers <- glm_df %>% anti_join(outliers)
+# 
+# glm_model_2 <- lm(log_MSRP~., glm_without_outliers)
+# 
+# plot(glm_model_2)
+# ols_plot_diagnostics(glm_model_2)
+# summary(glm_model_2)
 
-glm_model_2 <- lm(log(MSRP)~., glm_without_outliers)
+glm_prediction <- predict(glm_model, interval = "predict", newdata = validate_glm)
 
-plot(glm_model_2)
-ols_plot_diagnostics(glm_model_2)
-summary(glm_model_2)
+pred_RMSE <- sqrt(mean((glm_prediction[,1] - validate_glm$log_MSRP)^2))
+
+ASE_func <- function(error){mean(error^2)}
+ase <- ASE_func(glm_model$residuals)
+
+cat("RMSE: ", pred_RMSE, "ASE: ", ase)
 ```
 
 
 <h4>Complex Model</h4>
-- no use of feature selection 
-- not completely sure how to proceed using the glmnet results or "what" to make more complicated other than intuitive interactions
+
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
-# add srt_p
-complex_fit <- lm(log_MSRP~Year*Engine.Fuel.Type + log(Engine.HP) + Year*Engine.HP,training_b) # note not using training
+complex_fit <- lm(log_MSRP~
+                    Year+
+                    Year*Driven_Wheels+
+                    log(Engine.HP)*Vehicle.Size,
+                  training_b) # note not using training
 
 summary(complex_fit)
 plot(complex_fit)
 ols_plot_diagnostics(complex_fit)
 
+complex_pred <- predict(complex_fit, interval = "predict", newdata = validate_b)
+
+complex_RMSE<- sqrt(mean((complex_pred[,1] - validate_b$log_MSRP)^2))
+
+ASE_func <- function(error){mean(error^2)}
+ase <- ASE_func(complex_fit$residuals)
+
+cat("RMSE: ", complex_RMSE, "ASE : ", ase)
 ```
 
 
@@ -718,7 +733,7 @@ ols_plot_diagnostics(complex_fit)
 
 np_train <- car_train[,-c(1,3,5:7,9:11,15)]
 np_test <- car_test[,-c(1,3,5:7,9:11,15)]
-np_valid <- car_test[,-c(1,3,5:7,9:11,15)]
+np_valid <- car_valid[,-c(1,3,5:7,9:11,15)]
 
 # np_train <- training_b[,-c(1,3,5:7,9:11,15)]
 # np_test <- validate_b[,-c(1,3,5:7,9:11,15)]
@@ -727,7 +742,7 @@ np_valid <- car_test[,-c(1,3,5:7,9:11,15)]
 train_x = np_train[,!colnames(np_train)== "log_MSRP"]
 train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
 
-# validation set split into input and output
+# test set split into input and output
 test_x = np_test[,!colnames(np_test) == "log_MSRP"]
 test_y = as.numeric(unlist(np_test[,colnames(np_test)=="log_MSRP"]))
 
@@ -743,9 +758,24 @@ cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
 ```
 
 
-Non-Parametric | knn 
-```{r}
+<h3>Non-Parametric | KNN Regression Validation</h3>
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# training data split into input and output
+train_x = np_train[,!colnames(np_train)== "log_MSRP"]
+train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
 
+# validation set split into input and output
+test_x = np_valid[,!colnames(np_valid) == "log_MSRP"]
+test_y = as.numeric(unlist(np_valid[,colnames(np_valid)=="log_MSRP"]))
+
+
+knn_reg_valid = knnreg(train_x,train_y)
+pred_y = predict(knn_reg_valid,test_x)
+
+mse = mean((test_y - pred_y_knn)^2)
+mae = MAE(test_y, pred_y_knn)
+rmse = RMSE(test_y, pred_y_knn)
+cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
 
 ```
 
@@ -765,8 +795,8 @@ text(tree, use.n = TRUE, all = TRUE, cex=.8)
 pred_y = predict(tree, test_x)
 plot(pred_y, test_y)
 abline(0,1)
-sqrt(mean((pred_y - test_y)^2))
-print(data.frame(test_y,pred_y))
+#sqrt(mean((pred_y - test_y)^2)) RMSE
+#print(data.frame(test_y,pred_y))
 
 
 # regression analysis 
@@ -779,7 +809,7 @@ cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
 # viz the pred
 x = 1:length(test_y)
 plot(x,test_y, col = "red", type = "l", lwd = 2,
-     main = "MSRP test data prediction")
+     main = "Log-MSRP test data prediction")
 lines(x, pred_y, col = "blue", lwd = 2)
 legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
        fill = c("red", "blue"), col = 2:3, adj = c(0,0.6))
@@ -787,7 +817,7 @@ legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
 ```
 
 
-Non-Parametric | Regression Tree Validation
+<h3>Non-Parametric | Regression Tree Validation</h3>
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 # training data split into input and output
 train_x = np_train[,!colnames(np_train)== "log_MSRP"]
@@ -811,8 +841,8 @@ text(tree, use.n = TRUE, all = TRUE, cex=.8)
 pred_y = predict(tree, test_x)
 plot(pred_y, test_y)
 abline(0,1)
-sqrt(mean((pred_y - test_y)^2))
-print(data.frame(test_y,pred_y))
+#sqrt(mean((pred_y - test_y)^2)) RMSE
+#print(data.frame(test_y,pred_y))
 
 
 # regression analysis 
@@ -824,9 +854,9 @@ cat("MSE: ", mse, "MAE: ", mae, " RMSE: ", rmse)
 
 x = 1:length(test_y)
 plot(x,test_y, col = "red", type = "l", lwd = 2,
-     main = "MSRP test data prediction")
+     main = "Log MSRP test data prediction")
 lines(x, pred_y, col = "blue", lwd = 2)
-legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
+legend("topright", legend = c("MSRP", "predicted-MSRP"),
        fill = c("red", "blue"), col = 2:3, adj = c(0,0.6))
 
 ```
