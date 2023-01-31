@@ -16,18 +16,104 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(dplyr)
 
-df = read.csv("C:/Users/caroc/OneDrive/Desktop/DS6372_Project1/data1.csv", header=TRUE, stringsAsFactors=TRUE)
+df = read.csv("C:/Users/caroc/OneDrive/Desktop/DS6372_Project1/data1.csv", header=TRUE)
 head(df)
 glimpse(df)
 ```
 
-### Look at missing values
+### Look at missing and duplicated values
 ```{r}
 colSums(is.na(df))
 df[duplicated(df),]
 ```
 - It looks like Engine.HP has 69 NAs, Engine.Cylinders has 30 NAs, Number.of.Doors has 6NAs. How do we want to deal with missing data? 
 - Also looks like there are duplicate rows. Explore further to see if cam be removed. 
+
+Since many of the missing values seem to be found we will input them into the dataset below instead of removing those observations.
+
+#### Number of Doors
+All NA values here were found and input into the dataset.
+```{r}
+#updating NA for Doors
+df[6931:6935,9] <- 4 # Tesla model S
+df[4667,9] <- 2 # Ferrari FF 
+```
+
+#### Engine Cylinders
+The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders. This will remain NA for now.
+
+The remaining NA values come from electric vehicles and have been updated to 0 to match the other electric vehicles
+```{r}
+df[1984:1985, 6] <- 0 # chevy bolt EV
+df[3717:3720, 6] <- 0 # volkswagen e-golf
+df[5779:5781,6] <- 0 # mitsubishi i-miev
+df[8374,6] <- 0 # toyota rav4-ev
+df[c(5826,5831,5832,5834,5840,5841),6]<- 305 # chevy impala flex-fuel
+df[c(6909,6911,6917,6919),6]<-240 # lincoln mkz
+```
+
+#### Engine HP
+Certain cars specifically electric vehicles do not report “horsepower” but instead will report Kilowatts (KW) so we expect to see many Missing values when dealing with Electric vehicles.
+
+Exceptions to this: Chevy Spark - GM reports 140 HP i3 - BMW reports 170-181 HP i-MiEV - Mitsubishi reports 66 HP e-golf - Volkswagen reports 115 HP
+```{r}
+df[8374,5] <- 'NA' # toyota RAV4-EV
+df[2906:2909,5] <- 305 # lincoln Continental
+df[4204:4207,5]<- 168 # ford escape
+df[4915:4920,5]<- 193 # ford freestar
+
+
+car_data <- df
+```
+
+#### Transmission
+“Unknown” Data values in the Transmission.Type category Dodge Ram 150 could be a duplicate?
+
+```{r}
+car_data[1290:1291, 7] <- "AUTOMATIC" # oldsmobile achieva
+car_data[4692,7]<- "MANUAL" # cheaper firebird
+car_data[4693:4694,7]<- "AUTOMATIC" #more expensive firebird
+car_data[6159,7] <- "MANUAL" # GMC Jimmy cheaper 99
+car_data[6161,7] <- "AUTOMATIC" # GMC jimmy 99
+car_data[6166,7] <- "MANUAL" #gmc jimmy 00
+car_data[6175,7]<- "AUTOMATIC" # gmc jimmy 00
+car_data[6367,7] <- "MANUAL" # chrysler le baron 
+car_data[6369,7] <- "AUTOMATIC"# chrysler le baron 
+car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ram 150
+
+#view(car_data)
+```
+
+#### Market.Category 
+upon further investigation we find that there are many “N/A” values within the Market.Category column (3742) which could infact mean there is no applicable group that it fits into. we will change this N/A to No Category
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+sum(car_data$Market.Category == "N/A") #3742
+car_data$Market.Category[car_data$Market.Category == "N/A"] <- "No Category"
+```
+#### Convert to Factor
+There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data$Make <- as.factor(car_data$Make)
+car_data$Model<-as.factor(car_data$Model)
+#car_data$Year<-as.factor(car_data$Year) 
+car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type)
+car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # na values from elec. vehic. 
+car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders)
+car_data$Transmission.Type<-as.factor(car_data$Transmission.Type)
+car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels)
+car_data$Number.of.Doors<- as.factor(car_data$Number.of.Doors)
+car_data$Market.Category<-as.factor(car_data$Market.Category)
+car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size)
+car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style)
+car_data$Market.Category<-as.factor(car_data$Market.Category)
+```
+
+
+```{r}
+sum(car_data$Engine.HP == 0) 
+car_data$Engine.HP[car_data$Engine.HP == 0] <- "Electric"
+```
+
 
 ### Unique values for categorical variables
 ```{r}
@@ -55,4 +141,9 @@ df_cat$levels
 - Might need to reformat some of the strings. 
 - Factors as numeric? might not need to do that for these models. 
 
+## Correlations 
+```{r}
+library(ggcorr)
+ggcorr(car_data, label = TRUE, label_size = 2.9, hjust = 1, layout.exp = 2)
+```
 
