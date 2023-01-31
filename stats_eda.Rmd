@@ -252,8 +252,8 @@ car_data %>% ggplot(aes(MSRP))+
 car_data%>% ggplot(aes(log(MSRP)))+
   geom_histogram()
 
-car_data %>% filter(MSRP <=10000) %>% ggplot(aes(MSRP)) +
-  geom_histogram()
+car_data %>% filter(MSRP <=60000 & MSRP >15000) %>% ggplot(aes(y =log(MSRP), x = log(Popularity))) +
+  geom_point()
 
 car_data %>% filter(MSRP <=20000) %>% ggplot(aes(MSRP)) +
   geom_histogram()

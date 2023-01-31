@@ -36,7 +36,7 @@ vis_miss(dataset) # viz looking @ missing values
 ```
 
 <hr>
-<h3>NA: Deep Dive</h3>
+<h3>NA Value: Deep Dive & Remedy</h3>
 
 - Engine.HP = 69
 - Engine.Cylinders = 30
@@ -149,16 +149,16 @@ car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ra
 There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
-# car_data$Make <- as.factor(car_data$Make)
-# car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type) # chr
-# car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # dbl 
-# car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders) # dbl
-# car_data$Transmission.Type<-as.factor(car_data$Transmission.Type) # chr
-# car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels) # chr
-# car_data$Number.of.Doors<- as.integer(car_data$Number.of.Doors) # dbl
-# car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size) # chr
-# car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style) # chr
-# car_data$Market.Category<-as.factor(car_data$Market.Category) # chr
+car_data$Make <- as.factor(car_data$Make)
+car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type) # chr
+car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # dbl
+car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders) # dbl
+car_data$Transmission.Type<-as.factor(car_data$Transmission.Type) # chr
+car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels) # chr
+car_data$Number.of.Doors<- as.integer(car_data$Number.of.Doors) # dbl
+car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size) # chr
+car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style) # chr
+car_data$Market.Category<-as.factor(car_data$Market.Category) # chr
 ```
 
 
@@ -255,7 +255,7 @@ car_df <- car_data
 # keeping data from > than year 2000
 car_df <- car_data %>% filter(Year > 2000)
  
-car_df <- car_df %>% filter(MSRP <=75000)
+car_df <- car_df %>% filter(MSRP <=70000)
 
 #car_df <- car_df %>% filter(MSRP >=15000)
 
@@ -265,16 +265,255 @@ car_df <- car_df%>% filter(Engine.Fuel.Type != "electric")
 # adjust var types so that they work with our functions below. 
 car_df$log_MSRP <- log(car_df$MSRP)
 car_df$log_Engine.HP <- log(car_df$Engine.HP)
-car_df$log_Year <- log(car_df$Year)
 car_df$Year <- as.double(car_df$Year)
 car_df$city.mpg<-as.double(car_df$city.mpg)
 car_df$highway.MPG<-as.double(car_df$highway.MPG)
 car_df$Engine.Cylinders<-as.factor(car_df$Engine.Cylinders)
 car_df$Engine.HP<-as.double(car_df$Engine.HP)
 
+backup_df <- car_df
+
+```
+
+
+
+engineering features - vehicle.style
+```{r}
+
+car_df$Style_Van <- as.factor(ifelse(car_df$Vehicle.Style == "Cargo Minivan"|
+                                car_df$Vehicle.Style == "Cargo Van"|
+                                car_df$Vehicle.Style == "Passenger Van"|
+                                car_df$Vehicle.Style =="Passenger Minivan", 1,0))
+
+car_df$Style_SUV <- as.factor(ifelse(car_df$Vehicle.Style == "2dr SUV" |
+                                car_df$Vehicle.Style == "Convertible SUV" |
+                                car_df$Vehicle.Style == "4dr SUV", 1, 0))
+
+car_df$Style_Coupe <- as.factor(ifelse(car_df$Vehicle.Style == "Coupe",1,0))
+
+car_df$Style_Sedan <- as.factor(ifelse(car_df$Vehicle.Style == "Sedan",1,0))
+
+car_df$Style_Hatchback <- as.factor(ifelse(car_df$Vehicle.Style == "2dr Hatchback" |
+                                      car_df$Vehicle.Style == "4dr Hatchback",1,0))
+
+car_df$Style_Truck <- as.factor(ifelse(car_df$Vehicle.Style == "Crew Cab Pickup"|
+                                  car_df$Vehicle.Style == "Extended Cab Pickup"|
+                                  car_df$Vehicle.Style == "Regular Cab Pickup", 1, 0))
+
+car_df$Style_Convertible <- as.factor(ifelse(car_df$Vehicle.Style == "Convertible",1,0))
+
+car_df$Style_Wagon <- as.factor(ifelse(car_df$Vehicle.Style == "Wagon",1,0))
+
+car_df <- car_df[,-11] 
+#car_df <- as.data.frame(car_df)
 
 
 ```
+
+engineering features - market.category
+```{r}
+
+
+car_df$Flex_fuel <- as.double(ifelse(car_df$Market.Category == "Flex Fuel,Diesel"|
+                                 car_df$Market.Category == "Flex Fuel,Hybrid"|
+                                  car_df$Market.Category == "Flex Fuel,Luxury,High-Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Performance,Hybrid"|
+                                  car_df$Market.Category == "Flex Fuel"|
+                                  car_df$Market.Category == "Flex Fuel,Factory Tuner,Luxury,High-Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Luxury"|
+                                  car_df$Market.Category == "Flex Fuel,Luxury,Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Performance,Hybrid",1,0))
+
+car_df$Crossover <- as.double(ifelse(car_df$Market.Category == "Crossover"|
+                                         car_df$Market.Category == "Crossover,Exotic,Luxury,High-Performance"|
+                                         car_df$Market.Category == "Crossover,Factory Tuner,Luxury,High-Performance"|
+                                         car_df$Market.Category == "Crossover,Flex Fuel,Performance"|
+                                         car_df$Market.Category == "Crossover,Hatchback,Factory Tuner,Performance"|
+                                         car_df$Market.Category == "Crossover,Hatchback,Performance"|
+                                         car_df$Market.Category == "Crossover,Luxury"|
+                                         car_df$Market.Category == "Crossover,Diesel"|
+                                         car_df$Market.Category == "Crossover,Exotic,Luxury,Performance"|
+                                         car_df$Market.Category == "Crossover,Factory Tuner,Luxury,Performance"|
+                                         car_df$Market.Category == "Crossover,Flex Fuel"|
+                                         car_df$Market.Category == "Crossover,Flex Fuel,Luxury,Performance"|
+                                         car_df$Market.Category == "Crossover,Hatchback"|
+                                         car_df$Market.Category == "Crossover,Hatchback,Luxury"|
+                                         car_df$Market.Category == "Crossover,Hybrid"|
+                                         car_df$Market.Category == "Crossover,Luxury,Diesel"|
+                                         car_df$Market.Category == "Crossover,Luxury,Hybrid"|
+                                         car_df$Market.Category == "Crossover,Luxury,Performance,Hybrid",1,0))
+
+
+car_df$Diesel <- as.double(ifelse(car_df$Market.Category == "Diesel"|
+                                      car_df$Market.Category == "Diesel,Luxury",1,0))
+
+car_df$Exotic <- as.double(ifelse(car_df$Market.Category == "Exotic"|
+                                     car_df$Market.Category == "Exotic,Factory Tuner,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Flex Fuel,Factory Tuner,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Luxury,Performance"|
+                                      car_df$Market.Category == "Exotic,Factory Tuner,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Factory Tuner,Luxury,Performance"|
+                                      car_df$Market.Category == "Exotic,Flex Fuel,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Luxury"|
+                                      car_df$Market.Category == "Exotic,Luxury,High-Performance,Hybrid"|
+                                      car_df$Market.Category == "Exotic,Performance",1,0))
+
+
+car_df$Factory <- as.double(ifelse(car_df$Market.Category == "Factory"|
+                                      car_df$Market.Category == "Factory Tuner,High-Performance"|
+                                       car_df$Market.Category == "Factory Tuner,Luxury,High-Performance"|
+                                       car_df$Market.Category == "Factory Tuner,Performance"|
+                                       car_df$Market.Category == "Factory Tuner,Luxury"|
+                                       car_df$Market.Category == "Factory Tuner,Luxury,Performance",1,0))
+
+car_df$Hatchback <- as.double(ifelse(car_df$Market.Category == "Hatchback"|
+                                         car_df$Market.Category == "Hatchback,Factory Tuner,High-Performance"|
+                                         car_df$Market.Category =="Hatchback,Factory Tuner,Performance"|
+                                         car_df$Market.Category == "Hatchback,Hybrid"|
+                                         car_df$Market.Category == "Hatchback,Luxury,Hybrid"|
+                                         car_df$Market.Category == "Hatchback,Performance"|
+                                         car_df$Market.Category == "Hatchback,Diesel"|
+                                         car_df$Market.Category == "Hatchback,Factory Tuner,Luxury,Performance"|
+                                         car_df$Market.Category == "Hatchback,Flex Fuel"|
+                                         car_df$Market.Category == "Hatchback,Luxury"|
+                                         car_df$Market.Category == "Hatchback,Luxury,Performance",1,0))
+
+car_df$Hybrid <- as.double(ifelse(car_df$Market.Category == "Hybrid",1,0))
+
+car_df$Luxury <- as.double(ifelse(car_df$Market.Category == "Luxury"|
+                                      car_df$Market.Category == "Luxury,High-Performance"|
+                                      car_df$Market.Category == "Luxury,Hybrid"|
+                                      car_df$Market.Category == "Luxury,Performance,Hybrid"|
+                                      car_df$Market.Category == "Luxury,High-Performance,Hybrid"|
+                                      car_df$Market.Category == "Luxury,Performance",1,0))
+
+car_df$High_Performance <- as.double(ifelse(car_df$Market.Category == "High-Performance",1,0))
+
+car_df$Performance <- as.double(ifelse(car_df$Market.Category == "Performance"|
+                                           car_df$Market.Category == "Performance,Hybrid",1,0))
+
+car_df$No_Category <- as.double(ifelse(car_df$Market.Category == "No Category",1,0))
+
+
+car_df <- car_df[,-9] 
+```
+
+
+engineer features - fuel type 
+```{r}
+
+car_df$flex_Fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "flex-fuel (premium unleaded recommended/E85"|
+                                                car_df$Engine.Fuel.Type == "flex-fuel (unleaded/natural gas)"|
+                                                car_df$Engine.Fuel.Type == "flex-fuel (unleaded/E85)"|
+                                                car_df$Engine.Fuel.Type == "flex-fuel (premium unleaded required/E85",1,0))
+
+car_df$diesel_Fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "diesel",1,0))
+
+car_df$nat_fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "natrual gas",1,0))
+
+car_df$reg_fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type =="regular unleaded",1,0))
+
+car_df$electric_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "electric",1,0))
+
+car_df$prem_fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "premium unleaded (required)"|
+                                                car_df$Engine.Fuel.Type == "premium unleaded (recommended)",1,0))
+
+car_df <- car_df[,-3]
+
+```
+
+
+feat engineering - make
+```{r}
+
+car_df$German_Build <- as.double(ifelse(car_df$Make == "BMW"|
+                                            car_df$Make == "Mercedes-Benz"|
+                                            car_df$Make == "Volkswagen"|
+                                            car_df$Make == "Audi"|
+                                            car_df$Make == "Maybach"|
+                                            car_df$Make == "Porsche",1,0))
+
+car_df$french_build <- as.double(ifelse(car_df$Make == "Bugatti",1,0))
+
+car_df$Italy_Build <- as.double(ifelse(car_df$Make == "Alfa Romeo"|
+                                           car_df$Make == "Ferrari"|
+                                           car_df$Make == "FIAT"|
+                                           car_df$Make == "Lamborghini"|
+                                           car_df$Make == "Maserati",1,0))
+
+car_df$Japan_build <- as.double(ifelse(car_df$Make == "Acura"|
+                                           car_df$Make == "Honda"|
+                                           car_df$Make == "Infiniti"|
+                                           car_df$Make == "Lexus"|
+                                           car_df$Make == "Mazda"|
+                                           car_df$Make == "Suzuki"|
+                                           car_df$Make == "Subaru"|
+                                           car_df$Make == "Nissan"|
+                                           car_df$Make == "Scion"|
+                                           car_df$Make == "Mitsubishi"|
+                                           car_df$Make == "Toyota",1,0))
+
+car_df$finland_build <- as.double(ifelse(car_df$Make == "Saab",1,0))
+
+car_df$Netherlands_build <- as.double(ifelse(car_df$Make == "Spyker",1,0))
+
+car_df$SKorea_build <- as.double(ifelse(car_df$Make == "Genesis"|
+                                            car_df$Make == "Hyundai"|
+                                            car_df$Make == "Kia",1,0))
+
+car_df$sweden_build <- as.double(ifelse(car_df$Make == "Volvo",1,0))
+
+
+car_df$UK_build <- as.double(ifelse(car_df$Make == "Aston Martin"|
+                                        car_df$Make == "Bentley"|
+                                        car_df$Make == "Land Rover"|
+                                        car_df$Make == "Lotus"|
+                                        car_df$Make == "McLaren"|
+                                        car_df$Make == "Rolls-Royce",1,0))
+
+car_df$US_build <- as.double(ifelse(car_df$Make == "Buick"|
+                                        car_df$Make == "Cadillac"|
+                                        car_df$Make == "Chevrolet"|
+                                        car_df$Make == "GMC"|
+                                        car_df$Make == "Chrysler"|
+                                        car_df$Make == "Dodge"|
+                                        car_df$Make == "Ford"|
+                                        car_df$Make == "Hummer"|
+                                        car_df$Make == "Tesla"|
+                                        car_df$Make == "Plymouth"|
+                                        car_df$Make == "Pontiac"|
+                                        car_df$Make == "Oldsmobile"|
+                                        car_df$Make == "Lincoln",1,0))
+
+car_df <- car_df[,-1]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <hr>
@@ -286,8 +525,11 @@ car_df$Engine.HP<-as.double(car_df$Engine.HP)
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 # removing no-numerical categories so that we can viz correlative relationships
-car_data_correlations <- car_df[,-c(1,3,5,6,7,9,10,11)]
+car_data_correlations <- car_df[,-c(4,5,7,14:48)]
 
+car_data_correlations<- lapply(car_data_correlations,as.integer)
+
+car_data_correlations<- as.data.frame(car_data_correlations)
 # calling cor function to put into var. 
 corr_data <- cor(car_data_correlations)
 
@@ -297,7 +539,6 @@ ggcorrplot(corr_data, outline.color = "black", lab = TRUE, title = 'MSRP Correla
 ```
 
 
-
 <hr>
 <h3>Test/Validation Split</h3>
 
@@ -305,12 +546,22 @@ Before proceeding with model creation it is imperative that we split the data in
 The test-Validation splitting of the data enables evaluation of the model's performance on unknown (new) data.
 This aids in avoiding an overfitting model, which happens when a model is too closely fitted to the training set of data and fails to perform well on the test (validation) set. 
 ```{r}
+# car_df
 set.seed(7)
 
 trainIndex<-createDataPartition(car_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
 
 training <- car_df[trainIndex,]
 validate <- car_df[-trainIndex,]
+
+# backup_df
+
+set.seed(7)
+
+trainIndex_b<-createDataPartition(backup_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
+
+training_b <- backup_df[trainIndex,]
+validate_b <- backup_df[-trainIndex,]
 
 
 ```
@@ -339,7 +590,7 @@ Interpretation of Coefficients:
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
 # linear regression model 
-car_model_fit <- lm(log(MSRP)~Year+log(Engine.HP),training)
+car_model_fit <- lm(log(MSRP)~Year+log(Engine.HP)+Popularity,training)
 
 # variance inflation factor
 vif(car_model_fit)
@@ -354,39 +605,20 @@ ols_plot_diagnostics(car_model_fit)
 ```
 
 
-Objective 1
-- try feat. selection (glm) 
-- split data
-- interpret coef.
 
-- interpret final model (after CV)
-- include hypo tests. (on what)
-- confidence intervals of reg. coef. 
-- mention practical and stat. sign. of the predictors.
-- answer additional questions that are deemed relevant. 
+<hr>
 
-
-Objective 2
-- train/val split OR CV
-- create complex model
-- compare KNN against complex model created. 
-- gather measures of fit for all models (MSE, R^2, Adj.R, AIC, BIC)
-
-
-
-
-<center><h1> ask for clarification </h1></center>
-
-
-<h4>feat. selection with GLMNET and 5 fold cross validation on TRAINING DATASET</h4>
+<h4>Feature Selection & Cross Validation</h4>
 ```{r}
 set.seed(7)
 
+lambda <- seq(0,.37, by = .01)
 fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
 glmnet.fit2 <- train(log_MSRP~.,
                     data = training,
                     method = "glmnet",
-                    trControl = fitControl2)
+                    trControl = fitControl2,
+                    tuneGrid = expand.grid(alpha = 1, lambda = lambda))
 
 
 glmnet.fit2
@@ -404,30 +636,21 @@ coef(glmnet.fit2$finalModel,opt.pen2)
 
 
 
-GLM-Net filtered Model - complex model to run with glm-selected
-- extreme outliers
+<h3>GLMNET Selected Model</h3>
+
 ```{r}
+# remove features not selected by LASSO 
+glm_df <- training[,!names(training) %in% c("Engine.Cylinders4","Engine.Cylinders12","Engine.Cylinders16",
+                                            "Driven_Wheelsrear wheel drive", "flex_Fuel_intake",
+                                            "nat_fuel_intake","electric_intake","french_build",
+                                            "Netherlands_build", "Engine.HP","log_MSRP")]
 
-
-glm_df <- training[,!names(training) %in% c("MakeAston Martin", "MakeBentley","MakeBugatti",
-                                                  "MakeFerrari","MakeFord","MakeLamborghini",
-                                                  "MakeMaybach","MakeMcLaren","MakePlymouth",
-                                                  "MakeRolls-Royce","MakeSpyker","MakeTesla","Engine.Fuel.Typeelectric",
-                                                  "Engine.Cylinders4","Engine.Cylinders12","Market.CategoryCrossover,Exotic.Luxury.Performance",
-                                                  "Market.CategoryExotic,Factory Tuner,High-Performance",
-                                                  "Market.CategoryExotic,Factory Tuner,Luxury,High-Performance",
-                                                  "Market.CategoryExotic,Factory Tuner,Luxury,Performance",
-                                                  "Market.CategoryExotic,Flex Fuel,Factory Tuner,Luxury,High-Performance",
-                                                  "Market.CategoryExotic,Flex Fuel,Luxury,High-Performance",
-                                                  "Market.CategoryExotic,Luxury","Market.CategoryExotic,Luxury,High-Performance,Hybrid",
-                                                  "Market.CategoryExotic,Luxury,Performance", "Market.CategoryExotic,Performance",
-                                                  "Market.CategoryFactory Tuner,Luxury",
-                                                  "Market.CategoryFlex Fuel,Factory Tuner,Luxury,High-Performance",
-                                                  "Market.CategoryPerformance,Hybrid")]
-
-summary(glm_df)
+# create glm model
 glm_model <- lm(log(MSRP)~., glm_df)
+
+# view diagnostics
 plot(glm_model)
+
 summary(glm_model)
 
 cooksD <- cooks.distance(glm_model)
@@ -438,8 +661,11 @@ names_of_influential <- names(influential)
 outliers <- glm_df[names_of_influential,]
 glm_without_outliers <- glm_df %>% anti_join(outliers)
 
-model_glm2 <- lm(log(MSRP)~., glm_without_outliers)
-plot(model_glm2)
+glm_model_2 <- lm(log(MSRP)~., glm_without_outliers)
+
+plot(glm_model_2)
+ols_plot_diagnostics(glm_model_2)
+summary(glm_model_2)
 ```
 
 
@@ -447,54 +673,57 @@ plot(model_glm2)
 - no use of feature selection 
 - not completely sure how to proceed using the glmnet results or "what" to make more complicated other than intuitive interactions
 ```{r}
-glimpse(training)
-complex_fit <- lm(log_MSRP~log(Year)*Market.Category +log(Engine.HP),training)
+# add srt_p
+glimpse(training_b)
+complex_fit <- lm(log_MSRP~Year*Engine.Fuel.Type + log(Engine.HP) + Year*Engine.HP,training_b) # note not using training
 
 summary(complex_fit)
 plot(complex_fit)
+ols_plot_diagnostics(complex_fit)
 
 ```
 
 
 <h4>implement KNN regression (or other model)</h4>
 ```{r}
+# removing non-numerical 
+training2 <- training_b[,-c(1,3,5:7,9:11)]
+validate2 <- validate_b[,-c(1,3,5:7,9:11)]
 
-
-#removing non-numerical 
-training2 <- training[,-c(1,3,5:7,9:11)]
-
-validate2 <- validate[,-c(1,3,5:7,9:11)]
-
-reg1<- knn.reg(train = training2, test = validate2, y=training2$MSRP, k=5)
+knn_reg <- knn.reg(train = training2, test = validate2, y=training2$MSRP, k=5)
 
 
 ```
 
 
 
-<h4> 5 fold cv and training model using knn </h4>
+<h4> 5 fold CV and training model using knn </h4>
 ```{r}
+
 # 5 fold CV 
 fitControl2<-trainControl(method="repeatedcv", number = 5, repeats=1)
 
 # training model with 5 fold CV
 knn.fit<-train(log(MSRP)~log(Year)+log(Engine.HP),
-               data = training,
+               data = training_b,
                method = "knn",
                trControl = fitControl2)
 
 plot(knn.fit)
 knn.fit # table of k and stats
 
-x = training$log_MSRP
-y = log(training$Year)
-z = log(training$Engine.HP)
+preds <- predict(knn.fit,validate2)
 
-preds<- predict(knn.fit, validate2)
 pred.surface<- matrix(preds)
-plot3d(training$Year,training$MSRP,training$Engine.HP)
-#surface3d(x,y,z, alpha=.4) # how can we use surface with variables? or do we NEED to define columns/rows etc?
 
+plot3d(training$Year,training$MSRP,training$Engine.HP)
+
+
+
+val_predictions <- predict(knn.fit, newdata = validate2)
+# Root MSE 
+# MAE
+# plot the coefficents in glmnet
 ```
 
 
