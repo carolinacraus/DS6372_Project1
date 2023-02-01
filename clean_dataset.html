@@ -1021,62 +1021,76 @@ relationships.</p>
 <p>Because the model was based on a correlation heat map we included VIF
 in our statistical outputs to ensure that we do have not created a model
 with high multicollinearity.</p>
-<p><em>Interpretation of Coefficients &amp; Confidence Intervals:</em> -
-Holding Engine.HP constant, a one year increase is associated with a
-multiplicative change of e^.01245 = 1.013 or 1.3% increase in the median
-MSRP. We are 95% confident that the multiplicative change in the median
-MSRP is contained in the interval (e^.01189, e^.01399) = (1.012, 1.014),
-or an increase of (1.2%, 1.4%).</p>
+<h4>
+<em>Interpretation of Coefficients &amp; Confidence Intervals:</em>
+</h4>
 <ul>
-<li>Holding The Year Constant, A doubling of Engine.HP is associated
+<li><p>Holding Engine.HP constant, a one year increase is associated
+with a multiplicative change of e^.01245 = 1.013 or 1.3% increase in the
+median MSRP. We are 95% confident that the multiplicative change in the
+median MSRP is contained in the interval (e^.01189, e^.01399) = (1.012,
+1.014), or an increase of (1.2%, 1.4%).</p></li>
+<li><p>Holding The Year Constant, A doubling of Engine.HP is associated
 with a 2^.8458 = 1.797 multiplicative change in the median of MSRP, or a
 80% increase. We are 95% confident that the multiplicative change in the
 median MSRP is contained in the interval (2^.8318, 2^.8598) = (1.78,
-1.81), or an increase between (78%, 81%).</li>
+1.81), or an increase between (78%, 81%).</p></li>
 </ul>
-<p><em>Practical Significance | Year Predictor:</em> - A one year
-increase (a 1 year more current vehicle) car will result in a estimated
-1.3% increase in the median MSRP with a 95% confidence interval of
-1.2%-1.4%. The practical significance of this would be determined by
-each individual buyer in the market for a car since they will have
-relatively different purchasing power. Additionally market conditions
-that would make economic conditions more or less friendly to for buyers
-would ultimately affect the digestion or acceptance of this increase in
-picking models of various years.</p>
+<h4>
+<em>Practical Significance | Year Predictor:</em>
+</h4>
 <ul>
-<li>Because cars typically keep a specific model trim for a few years,
-applying this knowledge to someone shopping for a specific model type
-can come in handy as they would be able to potentially save money
-looking for “older” versions of identical models.</li>
-<li>Alternatively someone with more expendable income and buying power
-may find that the 1.3% increase is worth buying a “newer” model as a
-small price to pay for potentially less miles, upgraded technologies, or
-overall wear on the vehicle.</li>
+<li><p>A one year increase (a 1 year more current vehicle) car will
+result in a estimated 1.3% increase in the median MSRP with a 95%
+confidence interval of 1.2%-1.4%. The practical significance of this
+would be determined by each individual buyer in the market for a car
+since they will have relatively different purchasing power. Additionally
+market conditions that would make economic conditions more or less
+friendly to for buyers would ultimately affect the digestion or
+acceptance of this increase in picking models of various years.</p></li>
+<li><p>Because cars typically keep a specific model trim for a few
+years, applying this knowledge to someone shopping for a specific model
+type can come in handy as they would be able to potentially save money
+looking for “older” versions of identical models.</p></li>
+<li><p>Alternatively someone with more expendable income and buying
+power may find that the 1.3% increase is worth buying a “newer” model as
+a small price to pay for potentially less miles, upgraded technologies,
+or overall wear on the vehicle.</p></li>
 </ul>
-<p><em>Practical Significance | Log Engine Horse Power Predictor:</em> -
-A doubling of increase of Engine Horsepower is associated with an 80%
-increase in the Median MSRP. Practically speaking when you have a buyer
-who is looking to maximize vehicle performance (power, speed,
+<h4>
+<em>Practical Significance | Log Engine Horse Power Predictor:</em>
+</h4>
+<ul>
+<li><p>A doubling of increase of Engine Horsepower is associated with an
+80% increase in the Median MSRP. Practically speaking when you have a
+buyer who is looking to maximize vehicle performance (power, speed,
 acceleration) they are typically looking for a specific type of higher
 performance vehicle which are generally known to cost more compared to
 vehicles with a more functional purpose. Similar to the Year Predictor
 the significance of the Horse Power predictor would depend on the buyer
-among other factors.</p>
-<ul>
-<li>Understanding the price to performance (horsepower) trade off when
-purchasing a vehicle can be of practical significance to buyers looking
-to predict what a car of a certain performance would cost, as well those
-looking to find alternative models in which horsepower is not as
-great.</li>
+among other factors.</p></li>
+<li><p>Understanding the price to performance (horsepower) trade off
+when purchasing a vehicle can be of practical significance to buyers
+looking to predict what a car of a certain performance would cost, as
+well those looking to find alternative models in which horsepower is not
+as great.</p></li>
 </ul>
-<p><em>Statistical Significance | Year Predictor:</em> - At an alpha =
-.05 level of significance there is an overwhelming amount of evidence to
-suggest that the Year coefficient is different than zero (p-value &lt;
-.0001).</p>
-<p><em>Statistical Significance | Log Engine Horse Power Predictor:</em>
-- At an alpha = .05 level of significance there is an overwhelming
+<h4>
+<em>Statistical Significance | Year Predictor:</em>
+</h4>
+<ul>
+<li>At an alpha = .05 level of significance there is an overwhelming
 amount of evidence to suggest that the Year coefficient is different
-than zero (p-value &lt; .0001).</p>
+than zero (p-value &lt; .0001).</li>
+</ul>
+<h4>
+<em>Statistical Significance | Log Engine Horse Power Predictor:</em>
+</h4>
+<ul>
+<li>At an alpha = .05 level of significance there is an overwhelming
+amount of evidence to suggest that the Year coefficient is different
+than zero (p-value &lt; .0001).</li>
+</ul>
 <pre class="r"><code># removing MSRP 
 training_slr &lt;- training[,-11]
 validate_slr &lt;- validate[,-11]
@@ -1249,10 +1263,14 @@ complex_RMSE&lt;- sqrt(mean((complex_pred[,1] - validate_b$log_MSRP)^2))
 ASE_func &lt;- function(error){mean(error^2)}
 ase &lt;- ASE_func(complex_fit$residuals)
 bic &lt;- BIC(complex_fit)
+rsqr &lt;- summary(complex_fit)$r.squared
+adj_rsqr&lt;- summary(complex_fit)$adj.r.squared
 
-cat(&quot;RMSE: &quot;, complex_RMSE, &quot;\nASE: &quot;, ase, &quot;\nBIC: &quot;, bic)</code></pre>
+cat(&quot;RMSE: &quot;, complex_RMSE, &quot;\nASE: &quot;, ase, &quot;\nR-Squared:&quot;, rsqr, &quot;\nAdj.R-Squared:&quot;, adj_rsqr, &quot;\nBIC: &quot;,bic)</code></pre>
 <pre><code>## RMSE:  0.133107 
 ## ASE:  0.01706995 
+## R-Squared: 0.8713603 
+## Adj.R-Squared: 0.8693082 
 ## BIC:  -7987.303</code></pre>
 <hr>
 <h4>
@@ -1364,9 +1382,14 @@ pred_RMSE &lt;- sqrt(mean((glm_prediction[,1] - validate_glm$log_MSRP)^2))
 ASE_func &lt;- function(error){mean(error^2)}
 ase &lt;- ASE_func(glm_model$residuals)
 bic &lt;- BIC(glm_model)
-cat(&quot;RMSE: &quot;, pred_RMSE, &quot;\nASE: &quot;, ase, &quot;\nBIC&quot;, bic)</code></pre>
+rsqr &lt;- summary(glm_model)$r.squared
+adj_rsqr&lt;- summary(glm_model)$adj.r.squared
+
+cat(&quot;RMSE: &quot;, pred_RMSE, &quot;\nASE: &quot;, ase, &quot;\nR-Squared&quot;, rsqr, &quot;\nAdj.R-Squared&quot;, adj_rsqr, &quot;\nBIC&quot;, bic)</code></pre>
 <pre><code>## RMSE:  0.1387327 
 ## ASE:  0.01841167 
+## R-Squared 0.8612491 
+## Adj.R-Squared 0.8602954 
 ## BIC -8011.496</code></pre>
 <h3>
 Non-parametric | KNN Regression
@@ -1413,6 +1436,8 @@ test_y = as.numeric(unlist(np_valid[,colnames(np_valid)==&quot;log_MSRP&quot;]))
 
 knn_reg_valid = knnreg(train_x,train_y)
 pred_y = predict(knn_reg_valid,test_x)
+
+
 
 mse = mean((test_y - pred_y_knn)^2)
 mae = MAE(test_y, pred_y_knn)

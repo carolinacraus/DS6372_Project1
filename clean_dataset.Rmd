@@ -591,13 +591,13 @@ No Feature Selection Algorithms were used to create this model as the objective 
 
 Because the model was based on a correlation heat map we included VIF in our statistical outputs to ensure that we do have not created a model with high multicollinearity. 
 
-*Interpretation of Coefficients & Confidence Intervals:*
+<h4>*Interpretation of Coefficients & Confidence Intervals:*</h4>
 - Holding Engine.HP constant, a one year increase is associated with a multiplicative change of e^.01245 = 1.013 or 1.3% increase in the median MSRP. We are 95% confident that the multiplicative change in the median MSRP is contained in the interval (e^.01189, e^.01399) = (1.012, 1.014), or an increase of (1.2%, 1.4%). 
 
 - Holding The Year Constant, A doubling of Engine.HP is associated with a 2^.8458 = 1.797 multiplicative change in the median of MSRP, or a 80% increase. We are 95% confident that the multiplicative change in the median MSRP is contained in the interval (2^.8318, 2^.8598) = (1.78, 1.81), or an increase between (78%, 81%). 
 
 
-*Practical Significance | Year Predictor:*
+<h4>*Practical Significance | Year Predictor:*</h4>
 - A one year increase (a 1 year more current vehicle) car will result in a estimated 1.3% increase in the median MSRP with a 95% confidence interval of 1.2%-1.4%.
 The practical significance of this would be determined by each individual buyer in the market for a car since they will have relatively different purchasing power. 
 Additionally market conditions that would make economic conditions more or less friendly to for buyers would ultimately affect the digestion or acceptance of this increase in picking models of various years.
@@ -605,7 +605,7 @@ Additionally market conditions that would make economic conditions more or less 
 - Because cars typically keep a specific model trim for a few years, applying this knowledge to someone shopping for a specific model type can come in handy as they would be able to potentially save money looking for "older" versions of identical models. 
 - Alternatively someone with more expendable income and buying power may find that the 1.3% increase is worth buying a "newer" model as a small price to pay for potentially less miles, upgraded technologies, or overall wear on the vehicle. 
 
-*Practical Significance | Log Engine Horse Power Predictor:*
+<h4>*Practical Significance | Log Engine Horse Power Predictor:*</h4>
 - A doubling of increase of Engine Horsepower is associated with an 80% increase in the Median MSRP. 
 Practically speaking when you have a buyer who is looking to maximize vehicle performance (power, speed, acceleration) they are typically looking 
 for a specific type of higher performance vehicle which are generally known to cost more compared to vehicles with a more functional purpose. Similar to the Year Predictor
@@ -613,12 +613,12 @@ the significance of the Horse Power predictor would depend on the buyer among ot
 
 - Understanding the price to performance (horsepower) trade off when purchasing a vehicle can be of practical significance to buyers looking to predict what a car of a certain performance would cost, as well those looking to find alternative models in which horsepower is not as great. 
 
-*Statistical Significance | Year Predictor:*
+<h4>*Statistical Significance | Year Predictor:*</h4>
 - At an alpha = .05 level of significance there is an overwhelming amount of evidence to suggest that 
 the Year coefficient is different than zero (p-value < .0001). 
 
 
-*Statistical Significance | Log Engine Horse Power Predictor:*
+<h4>*Statistical Significance | Log Engine Horse Power Predictor:*</h4>
 - At an alpha = .05 level of significance there is an overwhelming amount of evidence to suggest that 
 the Year coefficient is different than zero (p-value < .0001). 
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
@@ -877,6 +877,8 @@ test_y = as.numeric(unlist(np_valid[,colnames(np_valid)=="log_MSRP"]))
 knn_reg_valid = knnreg(train_x,train_y)
 pred_y = predict(knn_reg_valid,test_x)
 
+
+
 mse = mean((test_y - pred_y_knn)^2)
 mae = MAE(test_y, pred_y_knn)
 rmse = RMSE(test_y, pred_y_knn)
@@ -920,7 +922,6 @@ plot(x,test_y, col = "red", type = "l", lwd = 2,
 lines(x, pred_y, col = "blue", lwd = 2)
 legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
        fill = c("red", "blue"), col = 2:3, adj = c(0,0.6))
-
 ```
 
 
