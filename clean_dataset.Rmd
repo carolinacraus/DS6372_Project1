@@ -1,0 +1,838 @@
+---
+always_allow_html: TRUE
+output: 
+  html_document: 
+    code_folding: hide
+  github_document: default
+---
+
+
+<hr>
+<center><h2>Explanatory Data Analysis</h2></center>
+<hr>
+
+<center><h3>Inspecting Summary Statistics and Missing Data:</h3></center>
+The variables in our the data set seem to have the most amount of missing data in Engine.HP, Engine.Cylinders and Number.of.Doors.
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+library(tidyverse)
+library(naniar)
+library(caret)
+library(ggcorrplot)
+library(FNN)
+library(car)
+library(ggplot2)
+library(rgl)
+library(olsrr)
+library(GGally)
+library(leaps)
+library(tree)
+library(rpart)
+dataset <- read.csv("C:/Users/caroc/OneDrive/Desktop/DS6372_Project1/data1.csv")
+#glimpse(dataset) # looking at the var types of each
+summary(dataset) # visually looking at the sum. stats of the vars in the data. 
+vis_miss(dataset) # viz looking @ missing values
+```
+
+<hr>
+<h3>NA Value: Deep Dive & Remedy</h3>
+
+- Engine.HP = 69
+- Engine.Cylinders = 30
+- Number.of.Doors = 6 
+
+Many of the missing values seem to be found using automobile specification related websites(such as Edmunds, KBB, etc). To ensure we are not just deleting data at random will research the vehicles and input updated values into the data set where applicable so that we can fully utilize the features and data provided.
+
+
+<h3>Number of Doors:</h3>
+The NA values here belong to the Tesla Model S and Ferrari FF.
+We were able to find and input these values successfully. 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+#updating NA for Doors
+dataset[6931:6935,9] <- 4 # Tesla model S
+dataset[4667,9] <- 2 # Ferrari FF 
+```
+
+
+
+<h3>Engine Cylinders</h3>
+
+Upon investigating the Engine Cylinders we found a couple of reasons for NA values to be present here.
+
+Reason 1:
+- The Mazda RX-7, and RX-8 use a unique rotary Engine and thus technically have no cylinders.
+
+Reason 2:
+- Electric Vehicles do not have engine cylinders, so it makes sense that we would find NA values in this group. For consistency in our data set we will update these vehicle types to 0. future consideration for a substitute value would be ideal here as the automobile market gains more and more Electric vehicles. This substitute value would help to leverage a way to add accurate predictions and values using this metric when comparing many EV.
+
+Important Considerations:
+- Engine Cylinders would likely correlate with Engine.HP, and typically cars with Higher engine horsepower (more cylinders) are more expensive (MSRP). Electric vehicles such as Tesla models are listed as 0 cylinders and this could prove to be problematic in a prediction model because the value of Tesla would be high, but the HP/cylinders would be lower to the gas vehicle counter parts.
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+dataset[1984:1985, 6] <- 0 # chevy bolt EV
+dataset[3717:3720, 6] <- 0 # volkswagen e-golf
+dataset[5779:5781,6] <- 0 # mitsubishi i-miev
+dataset[8374,6] <- 0 # toyota rav4-ev
+dataset[8696:8715, 6] <- 0 # mazda rotary engine RX7 AND RX8
+```
+
+
+<h3>Engine HP</h3>
+
+Certain cars specifically electric vehicles do not report "horsepower" but instead will report Kilowatts (KW). We expect to see many Missing values when dealing with Electric vehicles and to remedy this we have researched KW to HP conversions for specific models in attempt to keep the data intact, accurate and usable. 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+dataset[8374,5] <- 154 # toyota RAV4-EV
+dataset[2906:2909,5] <- 305 # lincoln Continental
+dataset[4204:4207,5]<- 168 # ford escape
+dataset[4915:4920,5]<- 193 # ford freestar
+dataset[c(5826,5831,5832,5834,5840,5841),5]<- 305 # chevy impala flex-fuel
+dataset[c(6909,6911,6917,6919),5]<-240 # lincoln mkz
+dataset[6579, 5] <- 200 # mercedes-benz m-class
+dataset[8375:8376,5]<-154 # 2013 rav4 EV and 2014
+dataset[540:542, 5] <- 111 # fiat 500 e - from edmunds
+dataset[9851:9855,5]<- 109 # kia soul Ev
+dataset[4706:4707,5] <- 123 # honda fit Ev
+dataset[c(4786,4790,4799),5] <- 143 # ford focus ev
+dataset[5779,5] <- 66 # mitsubishi i-miev
+dataset[6386:6395,5] <- 107 # nissan leaf 
+dataset[6923,5] <- 302 # base tsla model s 2014
+dataset[6922,5] <- 302 # 2nd tsla model s 2014
+dataset[6925,5] <- 362 # 3rd tsla model s 2014
+dataset[6924,5] <- 416 # 4th tsla model s 2014
+dataset[6926:6927,5]<- 329 # tsla model s 2015
+dataset[6930, 5]<- 362 # tsla model s 2015
+dataset[6928,5]<- 416 # tsla model s 2015
+dataset[6929,5]<- 691 # tsla model s 2015
+dataset[6932,5]<-259 # tsla model s 2016
+dataset[6935,5]<-315
+dataset[6934:6936,5] <- 373 # tsla model s 2016
+dataset[6936,5]<-373# tsla model s 2016
+dataset[c(6931,6937),5]<-417# tsla model s 2016
+dataset[6939,5]<- 503# tsla model s 2016
+dataset[c(6933,6938),5] <- 691# tsla model s 2016
+dataset[11322:11324,4] <- 'regular unleaded' # suzuki verona missing fuel type
+car_data <- dataset
+```
+
+
+
+
+<h3>"Unknown" Data Values:</h3>
+During the cleaning of our data we discovered "Unknown" values in the Transmission.Type category.
+These Unknown values are publicly and easily accessible information and we were able to update the database with the proper assignments after some research.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data[1290:1291, 7] <- "AUTOMATIC" # oldsmobile achieva
+car_data[4692,7]<- "MANUAL" # cheaper firebird
+car_data[4693:4694,7]<- "AUTOMATIC" #more expensive firebird
+car_data[6159,7] <- "MANUAL" # GMC Jimmy cheaper 99
+car_data[6161,7] <- "AUTOMATIC" # GMC jimmy 99
+car_data[6166,7] <- "MANUAL" #gmc jimmy 00
+car_data[6175,7]<- "AUTOMATIC" # gmc jimmy 00
+car_data[6367,7] <- "MANUAL" # chrysler le baron 
+car_data[6369,7] <- "AUTOMATIC"# chrysler le baron 
+car_data[c(8043,8044,8047,8048,8049,8050,8052,8054),7] <- "AUTOMATIC" # dodge ram 150
+```
+
+
+There are many chr and int types so we will change them into a factor where needed so that we can adequately plot the data.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data$Make <- as.factor(car_data$Make)
+car_data$Engine.Fuel.Type<- as.factor(car_data$Engine.Fuel.Type) # chr
+car_data$Engine.HP<- as.numeric(car_data$Engine.HP) # dbl
+car_data$Engine.Cylinders<-as.factor(car_data$Engine.Cylinders) # dbl
+car_data$Transmission.Type<-as.factor(car_data$Transmission.Type) # chr
+car_data$Driven_Wheels<- as.factor(car_data$Driven_Wheels) # chr
+car_data$Number.of.Doors<- as.integer(car_data$Number.of.Doors) # dbl
+car_data$Vehicle.Size<-as.factor(car_data$Vehicle.Size) # chr
+car_data$Vehicle.Style<-as.factor(car_data$Vehicle.Style) # chr
+car_data$Market.Category<-as.factor(car_data$Market.Category) # chr
+```
+
+
+<h3>"Not Applicable" Values:</h3>
+
+Upon investigation of the Market.Category section we found many "N/A" values (3,742).
+These values seem to be implicitly added N/A values, which could in fact mean there is no applicable group that it fits into per the source/creation of the data set. We will trust that the vehicles in question truly did not fit into any specific category and change this N/A to "No Category" to avoid any confusion with Missing value data. 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# change so that we can handle the "N/A" which is NOT an NA
+car_data$Market.Category<-as.character(car_data$Market.Category)
+#sum(car_data$Market.Category == "N/A") #3742 this is our benchmark 
+# reading as not applicable we will change to no category
+car_data$Market.Category[car_data$Market.Category == "N/A"] <- "No Category"
+# sanity check should be 0
+#sum(car_data$Market.Category == "N/A")
+# change to match rest of data type (factor)
+car_data$Market.Category<-as.factor(car_data$Market.Category)
+```
+
+<h3>Typo</h3>
+
+During some preliminary visualization of the data we discovered an outlier in Audi MPG.
+We researched and confirmed that this data was incorrect and replaced it with the appropriate value.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data[1120,13] <- 34
+```
+
+
+Finally we will remove the "model" variable since it presents no obvious value to our data and will not be used as a "predictor".
+
+A NA sanity check will be displayed to ensure we have addressed the values missing in our data set. 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+#glimpse(car_data) # view the df
+car_data <- car_data[,-2] # rm the model column
+#glimpse(car_data) # sanity check the df
+vis_miss(car_data)
+```
+
+<hr>
+<center><h3>Visualization of The Data</h3></center>
+<hr>
+
+<h3>Year / MSRP</h3>
+
+Figure 1.A:
+- Shows us a bi-modal distribution of the Log MSRP values. Upon further investigation and consultation,
+it was uncovered that certain values of the data tend to lose accuracy/reliability. 
+
+Figure 1.B:
+- When we visualize Year (predictor) vs MSRP (response variable) It is apparent to us that data from the year 2000 and older do not follow the trend of data earlier than the year 2000. In a prediction setting this provides evidence to us that we may be dealing with more than 1 population group and it may benefit us to narrow the scope of which our target model/population is targeted towards.
+
+Figure 1.C:
+- This scatter plot illustrates what we would expect to see in terms of the relationship between MSRP and Year which is an increasing trend in price as the year of the car is earlier and earlier (as year grows closer to the current year). 
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+car_data %>% ggplot(aes(log(MSRP)))+
+  geom_histogram() + ggtitle('Figure 1.A')
+car_data%>% ggplot(aes(Year, MSRP))+
+  geom_point(aes(color = MSRP <=2000)) + ggtitle('Figure 1.B')
+# car_data %>% filter(MSRP < 60000)%>% ggplot(aes(log(MSRP)))+
+#   geom_histogram(aes(fill = Year > 2000)) + ggtitle('Figure 1.C')
+car_data%>% filter(MSRP < 90000 & Year >2000) %>% ggplot(aes(Year, MSRP))+
+  geom_point(aes(color = MSRP <=2000)) + ggtitle('Figure 1.C')
+```
+
+
+
+
+
+<h3>Adjustments to The Dataset</h3>
+Based on the visualizations we will adjust the scope of our data set to make model and predictions on a more consistent form of data that best represents the population group of the data we have.
+The changes we are making to shape the data set are the following:
+- Keep data earlier than the year 2000
+
+- Remove data associated with "exotic" types of vehicles which represent astronomical prices
+
+- Filter out electric vehicles 
+
+```{r, message=FALSE, warning=FALSE, fig.align='center', include=FALSE}
+car_df <- car_data
+# keeping data from > than year 2000
+car_df <- car_data %>% filter(Year > 2000)
+ 
+car_df <- car_df %>% filter(MSRP <=70000)
+#car_df <- car_df %>% filter(MSRP >=15000)
+# filter out electric models
+car_df <- car_df%>% filter(Engine.Fuel.Type != "electric")
+# adjust var types so that they work with our functions below. 
+car_df$log_MSRP <- log(car_df$MSRP)
+car_df$log_Engine.HP <- log(car_df$Engine.HP)
+car_df$Year <- as.double(car_df$Year)
+car_df$city.mpg<-as.double(car_df$city.mpg)
+car_df$highway.MPG<-as.double(car_df$highway.MPG)
+car_df$Engine.Cylinders<-as.factor(car_df$Engine.Cylinders)
+car_df$Engine.HP<-as.double(car_df$Engine.HP)
+backup_df <- car_df
+```
+
+<hr>
+<center><h3>Feature Engineering</h3></center>
+<hr>
+
+This data set contains multiple categorical variables that contain multiple levels. When utilizing a feature selection tool
+such as glmnet the result can leave us with a lot of noise. So that we can work with a less noisy data set we have created new 
+variables to narrow our selection of features.
+
+<h3>Engineering - Vehicle Style</h3>
+```{r}
+car_df$Style_Van <- as.factor(ifelse(car_df$Vehicle.Style == "Cargo Minivan"|
+                                car_df$Vehicle.Style == "Cargo Van"|
+                                car_df$Vehicle.Style == "Passenger Van"|
+                                car_df$Vehicle.Style =="Passenger Minivan", 1,0))
+car_df$Style_SUV <- as.factor(ifelse(car_df$Vehicle.Style == "2dr SUV" |
+                                car_df$Vehicle.Style == "Convertible SUV" |
+                                car_df$Vehicle.Style == "4dr SUV", 1, 0))
+car_df$Style_Coupe <- as.factor(ifelse(car_df$Vehicle.Style == "Coupe",1,0))
+car_df$Style_Sedan <- as.factor(ifelse(car_df$Vehicle.Style == "Sedan",1,0))
+car_df$Style_Hatchback <- as.factor(ifelse(car_df$Vehicle.Style == "2dr Hatchback" |
+                                      car_df$Vehicle.Style == "4dr Hatchback",1,0))
+car_df$Style_Truck <- as.factor(ifelse(car_df$Vehicle.Style == "Crew Cab Pickup"|
+                                  car_df$Vehicle.Style == "Extended Cab Pickup"|
+                                  car_df$Vehicle.Style == "Regular Cab Pickup", 1, 0))
+car_df$Style_Convertible <- as.factor(ifelse(car_df$Vehicle.Style == "Convertible",1,0))
+car_df$Style_Wagon <- as.factor(ifelse(car_df$Vehicle.Style == "Wagon",1,0))
+car_df <- car_df[,-11] 
+#car_df <- as.data.frame(car_df)
+```
+
+
+<h3>Engineering - Market Category</h3>
+```{r}
+car_df$Flex_fuel <- as.double(ifelse(car_df$Market.Category == "Flex Fuel,Diesel"|
+                                 car_df$Market.Category == "Flex Fuel,Hybrid"|
+                                  car_df$Market.Category == "Flex Fuel,Luxury,High-Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Performance,Hybrid"|
+                                  car_df$Market.Category == "Flex Fuel"|
+                                  car_df$Market.Category == "Flex Fuel,Factory Tuner,Luxury,High-Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Luxury"|
+                                  car_df$Market.Category == "Flex Fuel,Luxury,Performance"|
+                                  car_df$Market.Category == "Flex Fuel,Performance,Hybrid",1,0))
+car_df$Crossover <- as.double(ifelse(car_df$Market.Category == "Crossover"|
+                                         car_df$Market.Category == "Crossover,Exotic,Luxury,High-Performance"|
+                                         car_df$Market.Category == "Crossover,Factory Tuner,Luxury,High-Performance"|
+                                         car_df$Market.Category == "Crossover,Flex Fuel,Performance"|
+                                         car_df$Market.Category == "Crossover,Hatchback,Factory Tuner,Performance"|
+                                         car_df$Market.Category == "Crossover,Hatchback,Performance"|
+                                         car_df$Market.Category == "Crossover,Luxury"|
+                                         car_df$Market.Category == "Crossover,Diesel"|
+                                         car_df$Market.Category == "Crossover,Exotic,Luxury,Performance"|
+                                         car_df$Market.Category == "Crossover,Factory Tuner,Luxury,Performance"|
+                                         car_df$Market.Category == "Crossover,Flex Fuel"|
+                                         car_df$Market.Category == "Crossover,Flex Fuel,Luxury,Performance"|
+                                         car_df$Market.Category == "Crossover,Hatchback"|
+                                         car_df$Market.Category == "Crossover,Hatchback,Luxury"|
+                                         car_df$Market.Category == "Crossover,Hybrid"|
+                                         car_df$Market.Category == "Crossover,Luxury,Diesel"|
+                                         car_df$Market.Category == "Crossover,Luxury,Hybrid"|
+                                         car_df$Market.Category == "Crossover,Luxury,Performance,Hybrid",1,0))
+car_df$Diesel <- as.double(ifelse(car_df$Market.Category == "Diesel"|
+                                      car_df$Market.Category == "Diesel,Luxury",1,0))
+car_df$Exotic <- as.double(ifelse(car_df$Market.Category == "Exotic"|
+                                     car_df$Market.Category == "Exotic,Factory Tuner,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Flex Fuel,Factory Tuner,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Luxury,Performance"|
+                                      car_df$Market.Category == "Exotic,Factory Tuner,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Factory Tuner,Luxury,Performance"|
+                                      car_df$Market.Category == "Exotic,Flex Fuel,Luxury,High-Performance"|
+                                      car_df$Market.Category == "Exotic,Luxury"|
+                                      car_df$Market.Category == "Exotic,Luxury,High-Performance,Hybrid"|
+                                      car_df$Market.Category == "Exotic,Performance",1,0))
+car_df$Factory <- as.double(ifelse(car_df$Market.Category == "Factory"|
+                                      car_df$Market.Category == "Factory Tuner,High-Performance"|
+                                       car_df$Market.Category == "Factory Tuner,Luxury,High-Performance"|
+                                       car_df$Market.Category == "Factory Tuner,Performance"|
+                                       car_df$Market.Category == "Factory Tuner,Luxury"|
+                                       car_df$Market.Category == "Factory Tuner,Luxury,Performance",1,0))
+car_df$Hatchback <- as.double(ifelse(car_df$Market.Category == "Hatchback"|
+                                         car_df$Market.Category == "Hatchback,Factory Tuner,High-Performance"|
+                                         car_df$Market.Category =="Hatchback,Factory Tuner,Performance"|
+                                         car_df$Market.Category == "Hatchback,Hybrid"|
+                                         car_df$Market.Category == "Hatchback,Luxury,Hybrid"|
+                                         car_df$Market.Category == "Hatchback,Performance"|
+                                         car_df$Market.Category == "Hatchback,Diesel"|
+                                         car_df$Market.Category == "Hatchback,Factory Tuner,Luxury,Performance"|
+                                         car_df$Market.Category == "Hatchback,Flex Fuel"|
+                                         car_df$Market.Category == "Hatchback,Luxury"|
+                                         car_df$Market.Category == "Hatchback,Luxury,Performance",1,0))
+car_df$Hybrid <- as.double(ifelse(car_df$Market.Category == "Hybrid",1,0))
+car_df$Luxury <- as.double(ifelse(car_df$Market.Category == "Luxury"|
+                                      car_df$Market.Category == "Luxury,High-Performance"|
+                                      car_df$Market.Category == "Luxury,Hybrid"|
+                                      car_df$Market.Category == "Luxury,Performance,Hybrid"|
+                                      car_df$Market.Category == "Luxury,High-Performance,Hybrid"|
+                                      car_df$Market.Category == "Luxury,Performance",1,0))
+car_df$High_Performance <- as.double(ifelse(car_df$Market.Category == "High-Performance",1,0))
+car_df$Performance <- as.double(ifelse(car_df$Market.Category == "Performance"|
+                                           car_df$Market.Category == "Performance,Hybrid",1,0))
+car_df$No_Category <- as.double(ifelse(car_df$Market.Category == "No Category",1,0))
+car_df <- car_df[,-9] 
+```
+
+
+<h3>Engineering - Fuel Type</h3>
+```{r}
+car_df$flex_Fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "flex-fuel (premium unleaded recommended/E85"|
+                                                car_df$Engine.Fuel.Type == "flex-fuel (unleaded/natural gas)"|
+                                                car_df$Engine.Fuel.Type == "flex-fuel (unleaded/E85)"|
+                                                car_df$Engine.Fuel.Type == "flex-fuel (premium unleaded required/E85",1,0))
+car_df$diesel_Fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "diesel",1,0))
+car_df$nat_fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "natrual gas",1,0))
+car_df$reg_fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type =="regular unleaded",1,0))
+car_df$electric_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "electric",1,0))
+car_df$prem_fuel_intake <- as.double(ifelse(car_df$Engine.Fuel.Type == "premium unleaded (required)"|
+                                                car_df$Engine.Fuel.Type == "premium unleaded (recommended)",1,0))
+car_df <- car_df[,-3]
+```
+
+
+<h3>Engineering - Make</h3>
+```{r}
+car_df$German_Build <- as.double(ifelse(car_df$Make == "BMW"|
+                                            car_df$Make == "Mercedes-Benz"|
+                                            car_df$Make == "Volkswagen"|
+                                            car_df$Make == "Audi"|
+                                            car_df$Make == "Maybach"|
+                                            car_df$Make == "Porsche",1,0))
+car_df$french_build <- as.double(ifelse(car_df$Make == "Bugatti",1,0))
+car_df$Italy_Build <- as.double(ifelse(car_df$Make == "Alfa Romeo"|
+                                           car_df$Make == "Ferrari"|
+                                           car_df$Make == "FIAT"|
+                                           car_df$Make == "Lamborghini"|
+                                           car_df$Make == "Maserati",1,0))
+car_df$Japan_build <- as.double(ifelse(car_df$Make == "Acura"|
+                                           car_df$Make == "Honda"|
+                                           car_df$Make == "Infiniti"|
+                                           car_df$Make == "Lexus"|
+                                           car_df$Make == "Mazda"|
+                                           car_df$Make == "Suzuki"|
+                                           car_df$Make == "Subaru"|
+                                           car_df$Make == "Nissan"|
+                                           car_df$Make == "Scion"|
+                                           car_df$Make == "Mitsubishi"|
+                                           car_df$Make == "Toyota",1,0))
+car_df$finland_build <- as.double(ifelse(car_df$Make == "Saab",1,0))
+car_df$Netherlands_build <- as.double(ifelse(car_df$Make == "Spyker",1,0))
+car_df$SKorea_build <- as.double(ifelse(car_df$Make == "Genesis"|
+                                            car_df$Make == "Hyundai"|
+                                            car_df$Make == "Kia",1,0))
+car_df$sweden_build <- as.double(ifelse(car_df$Make == "Volvo",1,0))
+car_df$UK_build <- as.double(ifelse(car_df$Make == "Aston Martin"|
+                                        car_df$Make == "Bentley"|
+                                        car_df$Make == "Land Rover"|
+                                        car_df$Make == "Lotus"|
+                                        car_df$Make == "McLaren"|
+                                        car_df$Make == "Rolls-Royce",1,0))
+car_df$US_build <- as.double(ifelse(car_df$Make == "Buick"|
+                                        car_df$Make == "Cadillac"|
+                                        car_df$Make == "Chevrolet"|
+                                        car_df$Make == "GMC"|
+                                        car_df$Make == "Chrysler"|
+                                        car_df$Make == "Dodge"|
+                                        car_df$Make == "Ford"|
+                                        car_df$Make == "Hummer"|
+                                        car_df$Make == "Tesla"|
+                                        car_df$Make == "Plymouth"|
+                                        car_df$Make == "Pontiac"|
+                                        car_df$Make == "Oldsmobile"|
+                                        car_df$Make == "Lincoln",1,0))
+car_df <- car_df[,-1]
+```
+
+
+<hr>
+<center><h3> Variable Relationships</h3></center>
+<hr>
+
+<h3>Correlation Heat Map</h3>
+- To visualize the link between variables, we created a correlation heat map graphic .It is used in regression analysis to ascertain whether there is a significant correlation between the independent (predictor) and dependent (response) variables. If there is a significant correlation, it may be possible to forecast the dependent variable using the independent variable. The selection of the regression model and its underlying assumptions can then be guided by this information. 
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# removing no-numerical categories so that we can viz correlative relationships
+car_data_correlations <- car_df[,-c(4,5,7,14:48)]
+car_data_correlations<- lapply(car_data_correlations,as.integer)
+car_data_correlations<- as.data.frame(car_data_correlations)
+# calling cor function to put into var. 
+corr_data <- cor(car_data_correlations)
+# generate the plot
+ggcorrplot(corr_data, outline.color = "black", lab = TRUE, title = 'MSRP Correlation Plot')
+```
+
+
+<hr>
+<h3>Test/Validation Split</h3>
+
+Before proceeding with model creation it is imperative that we split the data into a test and validation set. 
+The test-Validation splitting of the data enables evaluation of the model's performance on unknown (new) data.
+This aids in avoiding an over fitting model, which happens when a model is too closely fitted to the training 
+set of data and fails to perform well on the test (validation) set. 
+```{r}
+# car_df which includes feat engineering
+set.seed(7)
+trainIndex<-createDataPartition(car_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
+training <- car_df[trainIndex,]
+validate <- car_df[-trainIndex,]
+# backup_df no feat engineering
+set.seed(7)
+trainIndex_b<-createDataPartition(backup_df$log_MSRP,p=.8,list=F)  #p: proportion of data in train
+training_b <- backup_df[trainIndex,]
+validate_b <- backup_df[-trainIndex,]
+# test/train/validation split for validation sections
+set.seed(7)
+train_df <- .8
+valid_df <- .1
+test_df <- .1
+sampleSizeTrain <- floor(train_df * nrow(backup_df))
+sampleSizeValid <- floor(valid_df * nrow(backup_df))
+sampleSizeTest <- floor(test_df * nrow(backup_df))
+index_train<- sort(sample(seq_len(nrow(backup_df)), size = sampleSizeTrain))
+index_not_train<-setdiff(seq_len(nrow(backup_df)),index_train)
+index_valid <- sort(sample(seq_len(nrow(backup_df)),size = sampleSizeValid))
+index_test <- sort(sample(seq_len(nrow(backup_df)),size=sampleSizeTest))
+car_train <- backup_df[index_train,]
+car_valid <- backup_df[index_valid,]
+car_test <- backup_df[index_test,]
+```
+
+
+
+
+
+<hr>
+<h3><center>Regression Model Creation</center></h3>
+<hr>
+
+
+
+<h3>Simple (Low Complexity) Regression Model</h3>
+
+For the creation/building of this model we looked at correlative relationships in our heat map to determine
+whether there appeared to be a significant correlation between X variables (predictors) and MSRP (response) variables. A significant correlation, means it may be possible to forecast the dependent variable using the independent variable in a regression setting. 
+
+No Feature Selection Algorithms were used to create this model as the objective was to create model with high simplicity, and intuitive relationships. 
+
+Because the model was based on a correlation heat map we included VIF in our statistical outputs to ensure that we do have not created a model with high multicollinearity. 
+
+*Interpretation of Coefficients & Confidence Intervals:*
+- Holding Engine.HP constant, a one year increase is associated with a multiplicative change of e^.01245 = 1.013 or 1.3% increase in the median MSRP. We are 95% confident that the multiplicative change in the median MSRP is contained in the interval (e^.01189, e^.01399) = (1.012, 1.014), or an increase of (1.2%, 1.4%). 
+
+- Holding The Year Constant, A doubling of Engine.HP is associated with a 2^.8458 = 1.797 multiplicative change in the median of MSRP, or a 80% increase. We are 95% confident that the multiplicative change in the median MSRP is contained in the interval (2^.8318, 2^.8598) = (1.78, 1.81), or an increase between (78%, 81%). 
+
+
+*Practical Significance | Year Predictor:*
+- A one year increase (a 1 year more current vehicle) car will result in a estimated 1.3% increase in the median MSRP with a 95% confidence interval of 1.2%-1.4%.
+The practical significance of this would be determined by each individual buyer in the market for a car since they will have relatively different purchasing power. 
+Additionally market conditions that would make economic conditions more or less friendly to for buyers would ultimately affect the digestion or acceptance of this increase in picking models of various years.
+
+- Because cars typically keep a specific model trim for a few years, applying this knowledge to someone shopping for a specific model type can come in handy as they would be able to potentially save money looking for "older" versions of identical models. 
+- Alternatively someone with more expendable income and buying power may find that the 1.3% increase is worth buying a "newer" model as a small price to pay for potentially less miles, upgraded technologies, or overall wear on the vehicle. 
+
+*Practical Significance | Log Engine Horse Power Predictor:*
+- A doubling of increase of Engine Horsepower is associated with an 80% increase in the Median MSRP. 
+Practically speaking when you have a buyer who is looking to maximize vehicle performance (power, speed, acceleration) they are typically looking 
+for a specific type of higher performance vehicle which are generally known to cost more compared to vehicles with a more functional purpose. Similar to the Year Predictor
+the significance of the Horse Power predictor would depend on the buyer among other factors. 
+
+- Understanding the price to performance (horsepower) trade off when purchasing a vehicle can be of practical significance to buyers looking to predict what a car of a certain performance would cost, as well those looking to find alternative models in which horsepower is not as great. 
+
+*Statistical Significance | Year Predictor:*
+- At an alpha = .05 level of significance there is an overwhelming amount of evidence to suggest that 
+the Year coefficient is different than zero (p-value < .0001). 
+
+
+*Statistical Significance | Log Engine Horse Power Predictor:*
+- At an alpha = .05 level of significance there is an overwhelming amount of evidence to suggest that 
+the Year coefficient is different than zero (p-value < .0001). 
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# removing MSRP 
+training_slr <- training[,-11]
+validate_slr <- validate[,-11]
+# linear regression model 
+car_model_fit <- lm(log_MSRP~Year+log(Engine.HP),training_slr)
+# variance inflation factor
+vif(car_model_fit)
+# coefficients 
+summary(car_model_fit)
+# confidence intervals for coef. 
+confint.lm(car_model_fit)
+# diagnostics
+par(mfrow= c(2,2))
+plot(car_model_fit)
+# diagnostic check with resid. histogram. 
+#ols_plot_diagnostics(car_model_fit)
+# prediction on validation data 
+car_model_prediction <- predict(car_model_fit, interval = "predict", newdata = validate_slr)
+pred_RMSE <- sqrt(mean((car_model_prediction[,1] - validate_slr$log_MSRP)^2))
+# # functions for returning RMSE and ASE 
+# RMSE_func<- function(error){sqrt(mean(error^2))}
+ASE_func <- function(error){mean(error^2)}
+# 
+# RMSE_func(car_model_fit$residuals)
+ase <- ASE_func(car_model_fit$residuals)
+rsqr <- summary(car_model_fit)$r.squared
+adj_rsqr<- summary(car_model_fit)$adj.r.squared
+cat("RMSE: ", pred_RMSE, "\nASE: ", ase, "\nR-Squared", rsqr, "\nAdj.R-Squared", adj_rsqr)
+```
+
+
+<h3>Testing for Differences in Categorical Variables</h3>
+Our easily interpretable model above doesn't include categorical variables due to not understanding if 
+the levels within certain variables are different or the same. 
+
+*Hypothesis Testing: Vehicle Size* 
+So that we can understand the various categories of the Vehicle Engine Size and if we should account for different slopes between Compact and Large sizes we will perform a hypothesis test which will help us identify significant differences. 
+
+Ho: B<sub>Year</sub> = B<sub>Engine.HP</sub> = 0
+Ha: B<sub>Year</sub> != B<sub>Engine.HP</sub> != 0 
+
+We reject the null hypothesis. There is sufficient evidence at a significance level of 0.05 (p-value < 0.0001, F-statistic = 8534) to conclude that the slope of Year is not equal to the slope of Engine.HP. In other words, we can conclude Year and Enginge.HP are not linearly correlated. 
+
+
+
+Visualizing Slopes For Various Categorical Variables
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Vehicle.Style))+
+  geom_point(show.legend = FALSE)+
+  geom_smooth(method = 'lm')
+backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Vehicle.Size))+
+  geom_point(show.legend = F)+
+  geom_smooth(method = 'lm', show.legend = F)
+backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Make))+
+  geom_point(show.legend = FALSE)+
+  geom_smooth(method = 'lm', show.legend = F)
+backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Engine.Cylinders))+
+  geom_point(show.legend = FALSE)+
+  geom_smooth(method = 'lm', show.legend = F)
+```
+
+<h3>ANOVA Testing</h3>
+In the following chunk of code, we run ANOVAs with interactions to assess the effect of a variable on another given it's multiple levels. 
+Doing this allows us to determine whether the relationship between the variables is independent or if the interaction modifies the relationship behavior.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+aov_1 <- aov(log_MSRP~log_Engine.HP* Vehicle.Size, backup_df)
+summary(aov_1) # there is not suff. evidence of a need for interaction 
+aov_2 <- aov(log_MSRP~log_Engine.HP*Make, backup_df)
+summary(aov_2) # there is suff. evidence of a need for an interaction 
+aov_3 <- aov(log_MSRP~log_Engine.HP*Engine.Cylinders, backup_df)
+summary(aov_3)# there is suff. evidence of a need for an interaction
+aov_4 <- aov(log_MSRP~log_Engine.HP*Vehicle.Style, backup_df)
+summary(aov_4)# there is suff. evidence of a need for an interaction
+```
+
+
+<h4>Complex Model</h4>
+Using the results of the ANOVAs run above we can determine that various explanatory features have an effect on log_engine.hp. 
+So that we can account for these effects we have created interaction terms in our complex model below. 
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+complex_fit <- lm(log_MSRP~
+                    Year+
+                    log_Engine.HP*Engine.Cylinders+
+                    log(Engine.HP)*Make+
+                    log(Engine.HP)*Vehicle.Style,
+                  training_b) # note not using training
+#summary(complex_fit)
+par(mfrow = c(2,2))
+plot(complex_fit)
+#ols_plot_diagnostics(complex_fit)
+complex_pred <- predict(complex_fit, interval = "predict", newdata = validate_b)
+complex_RMSE<- sqrt(mean((complex_pred[,1] - validate_b$log_MSRP)^2))
+ASE_func <- function(error){mean(error^2)}
+ase <- ASE_func(complex_fit$residuals)
+bic <- BIC(complex_fit)
+rsqr <- summary(complex_fit)$r.squared
+adj_rsqr<- summary(complex_fit)$adj.r.squared
+cat("RMSE: ", complex_RMSE, "\nASE: ", ase, "\nR-Squared:", rsqr, "\nAdj.R-Squared:", adj_rsqr, "\nBIC: ",bic)
+```
+
+
+
+
+<hr>
+<h4>Feature Selection & 5-Fold Cross Validation</h4>
+
+The following code chunk will run 5 fold cross validation as well as LASSO feature selection.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+set.seed(7)
+training_glm <- training[,-11]
+validate_glm <-validate[,-11]
+lambda <- seq(0,.3, by = .01)
+fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+glmnet.fit2 <- train(log_MSRP~.,
+                    data = training_glm,
+                    method = "glmnet",
+                    trControl = fitControl2,
+                    tuneGrid = expand.grid(alpha = 1, lambda = lambda))
+glmnet.fit2
+plot(glmnet.fit2)
+#opt.pen2<- glmnet.fit2$finalModel$lambdaOpt
+#coef(glmnet.fit2$finalModel,opt.pen2)
+```
+
+
+
+
+
+<h3>GLMNET Selected Model</h3>
+Using the results from our LASSO model we will use the suggested features to create a new regression model:
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# remove features not selected by LASSO 
+glm_df <- training_glm[,!names(training_glm) %in% c("Engine.Cylinders12","Engine.Cylinders16","Style_Sedan1",
+                                            "nat_fuel_intake","electric_intake","french_build",
+                                            "Netherlands_build", "Engine.HP")]
+# create glm model
+glm_model <- lm(log_MSRP~., glm_df)
+# view diagnostics
+#plot(glm_model)
+#summary(glm_model)
+# cooksD <- cooks.distance(glm_model)
+# influential <- cooksD[(cooksD > (3 * mean(cooksD, na.rm = TRUE)))]
+#influential
+# names_of_influential <- names(influential)
+# outliers <- glm_df[names_of_influential,]
+# glm_without_outliers <- glm_df %>% anti_join(outliers)
+# 
+# glm_model_2 <- lm(log_MSRP~., glm_without_outliers)
+# 
+# plot(glm_model_2)
+# ols_plot_diagnostics(glm_model_2)
+# summary(glm_model_2)
+glm_prediction <- predict(glm_model, interval = "predict", newdata = validate_glm)
+pred_RMSE <- sqrt(mean((glm_prediction[,1] - validate_glm$log_MSRP)^2))
+ASE_func <- function(error){mean(error^2)}
+ase <- ASE_func(glm_model$residuals)
+bic <- BIC(glm_model)
+rsqr <- summary(glm_model)$r.squared
+adj_rsqr<- summary(glm_model)$adj.r.squared
+
+library(dvmisc)
+mse <- get_mse(glm_model)
+
+cat("RMSE: ", pred_RMSE, "\nASE: ", ase, "\nR-Squared", rsqr, "\nAdj.R-Squared", adj_rsqr, "\nBIC", bic, "\nMSE: ", mse)
+```
+
+
+
+
+
+
+<h3>Non-parametric | KNN Regression</h3>
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+np_train <- car_train[,-c(1,3,5:7,9:11,15)]
+np_test <- car_test[,-c(1,3,5:7,9:11,15)]
+np_valid <- car_valid[,-c(1,3,5:7,9:11,15)]
+# np_train <- training_b[,-c(1,3,5:7,9:11,15)]
+# np_test <- validate_b[,-c(1,3,5:7,9:11,15)]
+# training data split into input and output
+train_x = np_train[,!colnames(np_train)== "log_MSRP"]
+train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
+# test set split into input and output
+test_x = np_test[,!colnames(np_test) == "log_MSRP"]
+test_y = as.numeric(unlist(np_test[,colnames(np_test)=="log_MSRP"]))
+#knn regression
+knn_reg = knnreg(train_x, train_y)
+pred_y_knn = predict(knn_reg, test_x)
+mse = mean((test_y - pred_y_knn)^2)
+mae = MAE(test_y, pred_y_knn)
+rmse = RMSE(test_y, pred_y_knn)
+cat("MSE: ", mse, "\nMAE: ", mae, "\nRMSE: ", rmse)
+```
+
+
+<h3>Non-Parametric | KNN Regression Validation</h3>
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# training data split into input and output
+train_x = np_train[,!colnames(np_train)== "log_MSRP"]
+train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
+# validation set split into input and output
+test_x = np_valid[,!colnames(np_valid) == "log_MSRP"]
+test_y = as.numeric(unlist(np_valid[,colnames(np_valid)=="log_MSRP"]))
+knn_reg_valid = knnreg(train_x,train_y)
+pred_y = predict(knn_reg_valid,test_x)
+mse = mean((test_y - pred_y_knn)^2)
+mae = MAE(test_y, pred_y_knn)
+rmse = RMSE(test_y, pred_y_knn)
+cat("MSE: ", mse, "\nMAE: ", mae, "\nRMSE: ", rmse)
+```
+```{r}
+# # Residuals sum of squares
+rss <- function(preds, actual){sum((preds - actual) ^ 2)}
+# 
+# # Total sum of squares (proportional to the variance of the observed data)
+tss <- function(actual){sum((actual - mean(actual)) ^ 2)}
+# 
+# # Coefficient of determination R2
+r_square <- function(actual, preds){1 - ((sum((preds - actual) ^ 2))/(sum((actual - mean(actual)) ^ 2)))}
+  
+r_square(test_y, pred_y_knn)
+```
+
+
+<h3>Non-Parametric | Regression Tree</h3>
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+par(mfrow= c(2,2))
+# tree
+tree= rpart::rpart(log_MSRP~.,data = np_train, method = "anova")
+rpart::printcp(tree)
+rpart::plotcp(tree)
+summary(tree)
+plot(tree, uniform = TRUE,
+     main = "classifcation tree for MSRP")
+text(tree, use.n = TRUE, all = TRUE, cex=.8)
+# prediction
+pred_y = predict(tree, test_x)
+plot(pred_y, test_y)
+abline(0,1) 
+#sqrt(mean((pred_y - test_y)^2)) RMSE
+#print(data.frame(test_y,pred_y))
+# regression analysis 
+mse = mean((test_y-pred_y)^2)
+mae = MAE(test_y,pred_y)
+rmse = RMSE(test_y,pred_y)
+cat("MSE: ", mse, "\nMAE: ", mae, "\nRMSE: ", rmse)
+# viz the pred
+x = 1:length(test_y)
+plot(x,test_y, col = "red", type = "l", lwd = 2,
+     main = "Log-MSRP test data prediction")
+lines(x, pred_y, col = "blue", lwd = 2)
+legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
+       fill = c("red", "blue"), col = 2:3, adj = c(0,0.6))
+```
+
+
+<h3>Non-Parametric | Regression Tree Validation</h3>
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+# training data split into input and output
+train_x = np_train[,!colnames(np_train)== "log_MSRP"]
+train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
+# validation set split into input and output
+test_x = np_valid[,!colnames(np_valid) == "log_MSRP"]
+test_y = as.numeric(unlist(np_valid[,colnames(np_valid)=="log_MSRP"]))
+par(mfrow= c(2,2))
+# tree
+tree= rpart::rpart(log_MSRP~.,data = np_train, method = "anova")
+rpart::printcp(tree)
+rpart::plotcp(tree)
+summary(tree)
+plot(tree, uniform = TRUE,
+     main = "classifcation tree for MSRP")
+text(tree, use.n = TRUE, all = TRUE, cex=.8)
+# prediction
+pred_y = predict(tree, test_x)
+plot(pred_y, test_y)
+abline(0,1)
+#sqrt(mean((pred_y - test_y)^2)) RMSE
+#print(data.frame(test_y,pred_y))
+# regression analysis 
+mse = mean((test_y-pred_y)^2)
+mae = MAE(test_y,pred_y)
+rmse = RMSE(test_y,pred_y)
+cat("MSE: ", mse, "\nMAE: ", mae, "\nRMSE: ", rmse)
+x = 1:length(test_y)
+plot(x,test_y, col = "red", type = "l", lwd = 2,
+     main = "Log MSRP test data prediction")
+lines(x, pred_y, col = "blue", lwd = 2)
+legend("topright", legend = c("MSRP", "predicted-MSRP"),
+       fill = c("red", "blue"), col = 2:3, adj = c(0,0.6))
+```
+
+```{r}
+summary(tree)$adj.r.squared
+```
+
+
+<h3>Conclusion</h3>
+
+Based on the MSE and RMSE, the complex GLMNET model with 5 fold cross validation and LASSO feature selection performed the best with an RMSE of 0.14 and and MSE of 0.02. With only slightly higher metrics, the Regression Tree Model had an RMSE of 0.20 and an MSE of 0.04. The KNN Model had the poorest performance with an RMSE of 0.49 and an MSE of 0.24 
+
+*Measures of Fit:*
+
+|                       |   RMSE    |    MSE     |    MAE    | Adj. R^2  |
+|-----------------------|:---------:|:----------:|:---------:|:---------:|
+| Complex Model         | 0.1387327 | 0.01854076 |           | 0.7218715 |
+| KNN Model             | 0.4900468 | 0.2401459  | 0.3869861 |           |
+| Regression Tree Model | 0.1989946 | 0.0395989  | 0.1593347 |           |
+
+
