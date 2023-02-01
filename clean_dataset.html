@@ -1090,6 +1090,27 @@ ase &lt;- ASE_func(car_model_fit$residuals)
 
 cat(&quot;RMSE: &quot;, pred_RMSE, &quot;ASE: &quot;, ase)</code></pre>
 <pre><code>## RMSE:  0.2036062 ASE:  0.04043314</code></pre>
+<p><em>Interpretation of Coefficients &amp; Confidence Intervals:</em> -
+Holding Engine.HP constant, a one year increase is associated with a
+multiplicative change of e^.01245 = 1.013 or 1.3% increase in the median
+MSRP. We are 95% confident that the multiplicative change in the median
+MSRP is contained in the interval (e^.01189, e^.01399) = (1.012, 1.014),
+or an increase of (1.2%, 1.4%).</p>
+<ul>
+<li>Holding The Year Constant, A doubling of Engine.HP is associated
+with a 2^.8458 = 1.797 multiplicative change in the median of MSRP, or a
+80% increase. We are 95% confident that the multiplicative change in the
+median MSRP is contained in the interval (2^.8318, 2^.8598) = (1.78,
+1.81), or an increase between (78%, 81%).</li>
+</ul>
+<p><em>Hypothesis Testing:</em></p>
+<p>Ho: B<sub>Year</sub> = B<sub>Engine.HP</sub> = 0 Ha: B<sub>Year</sub>
+!= B<sub>Engine.HP</sub> != 0</p>
+<p>We reject the null hypothesis. There is sufficient evidence at a
+significance level of 0.05 (p-value &lt; 0.0001, F-statistic = 8534) to
+conclude that the slope of Year is not equal to the slope of Engine.HP.
+In other words, we can conclude Year and Enginge.HP are not linearly
+correlated.</p>
 <hr>
 <h4>
 Feature Selection &amp; Cross Validation

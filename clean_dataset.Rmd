@@ -575,6 +575,86 @@ car_test <- backup_df[index_test,]
 <h3><center>Regression Model Creation</center></h3>
 <hr>
 
+Looking for Visual Slope Differences In Categorical Variables
+```{r}
+# Vehicle Sizes
+backup_df %>% ggplot(aes(Year, log_MSRP, color = Vehicle.Size))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+# Vehicle Make
+backup_df %>% ggplot(aes(Year, log_MSRP, color = Make))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+# Engine.Fuel.Type
+backup_df %>% ggplot(aes(Year, log_MSRP, color = Engine.Fuel.Type))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+# Driven_Wheels
+backup_df %>% ggplot(aes(Year, log_MSRP, color = Driven_Wheels))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+# Vehivle.Style
+backup_df %>% ggplot(aes(Year, log_MSRP, color = Vehicle.Style))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+# Engine.Cylinders
+backup_df %>% ggplot(aes(Year, log_MSRP, color = Engine.Cylinders)) +
+  geom_point()+
+  geom_smooth(method = "lm")
+
+# Tranmission.Type
+backup_df%>% ggplot(aes(Year, log_MSRP, color = Transmission.Type)) +
+  geom_point()+
+  geom_smooth(method = "lm")
+
+# Number.of.Doors
+backup_df %>% ggplot(aes(Year, log_MSRP, color = as.factor(Number.of.Doors)))+
+  geom_point()+
+  geom_smooth(method="lm")
+
+# Market.Category
+backup_df %>% ggplot(aes(Year, log_MSRP, color = Market.Category))+
+  geom_point(show.legend = FALSE)+
+  geom_smooth(method = "lm", show.legend = FALSE)
+
+```
+
+Car Size Slope Differnece testing 
+```{r}
+car_size_slope <- lm(log_MSRP~Year*Vehicle.Size, backup_df)
+summary(car_size_slope)
+
+#Contrast maker
+lm.contrast<-function(lmobj,contrast){
+  if(is.matrix(contrast)==F) contrast<-matrix(contrast,nrow=1)
+  if(ncol(contrast)!=length(coef(lmobj))) return("Error: Contrast length does not match the number of coefficients in linear model object.")
+  estimates<-contrast %*% coef(lmobj)
+  se<- sqrt(diag(contrast %*% vcov(lmobj) %*% t(contrast)))
+  t.stat<-estimates/se
+  p.val<-pt(-abs(t.stat),df=lmobj$df.residual)
+  ci.l<-estimates-qt(.975,df=lmobj$df.residual)*se
+  ci.u<-estimates+qt(.975,df=lmobj$df.residual)*se
+  results<-data.frame(Estimates=estimates,SE=se,t.stat,p.val,Lower=ci.l,Upper=ci.u)
+  return(results)
+}
+
+contrast1 <- c(0,0,0,0,1,-1) # testing different slopes for large and midsize 
+
+# contrast.matrix<-rbind(contrast1,contrast2,contrast3) if we had multiple contrasts
+lm.contrast(car_size_slope,contrast1)
+
+
+```
+
+
+
+
+
 <h3>Training Data - Simple Model</h3>
 
 For the creation/building of this model we looked at correlative relationships in our heat map to determine
@@ -595,8 +675,9 @@ Interpretation of Coefficients:
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 training_slr <- training[,-11]
 validate_slr <- validate[,-11]
+
 # linear regression model 
-car_model_fit <- lm(log_MSRP~Year+log(Engine.HP),training_slr)
+car_model_fit <- lm(log_MSRP~Year+log(Engine.HP) + Vehicle.Size,training_slr)
 
 # variance inflation factor
 vif(car_model_fit)
@@ -628,6 +709,30 @@ ase <- ASE_func(car_model_fit$residuals)
 
 cat("RMSE: ", pred_RMSE, "ASE: ", ase)
 ```
+
+
+
+```{r}
+# linear regression model 
+hypo_1 <- lm(log_MSRP~Year*Vehicle.Size + log_Engine.HP,training_slr)
+
+summary(hypo_1)
+
+
+```
+*Interpretation of Coefficients & Confidence Intervals:*
+- Holding Engine.HP constant, a one year increase is associated with a multiplicative change of e^.01245 = 1.013 or 1.3% increase in the median MSRP. We are 95% confident that the multiplicative change in the median MSRP is contained in the interval (e^.01189, e^.01399) = (1.012, 1.014), or an increase of (1.2%, 1.4%). 
+
+- Holding The Year Constant, A doubling of Engine.HP is associated with a 2^.8458 = 1.797 multiplicative change in the median of MSRP, or a 80% increase. We are 95% confident that the multiplicative change in the median MSRP is contained in the interval (2^.8318, 2^.8598) = (1.78, 1.81), or an increase between (78%, 81%). 
+
+*Hypothesis Testing: Vehicle Size* 
+So that we can understand the various categories of the Vehicle Engine Size and if we should account for different slopes between Compact and Large sizes we will perform a hypothesis test which will help us identify significant differences. 
+
+Ho: B<sub>Year</sub> = B<sub>Engine.HP</sub> = 0
+Ha: B<sub>Year</sub> != B<sub>Engine.HP</sub> != 0 
+
+We reject the null hypothesis. There is sufficient evidence at a significance level of 0.05 (p-value < 0.0001, F-statistic = 8534) to conclude that the slope of Year is not equal to the slope of Engine.HP. In other words, we can conclude Year and Enginge.HP are not linearly correlated. 
+
 
 
 
