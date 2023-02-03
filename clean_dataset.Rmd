@@ -787,31 +787,33 @@ plot(glmnet.fit2)
 Using the results from our LASSO model we will use the suggested features to create a new regression model:
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 # remove features not selected by LASSO 
-glm_df <- training_glm[,!names(training_glm) %in% c("Engine.Cylinders12","Engine.Cylinders16","Style_Sedan1",
+glm_df <- training_glm[,!names(training_glm) %in% c("Engine.Cylinders12","Engine.Cylinders16","Style_Sedan",
                                             "nat_fuel_intake","electric_intake","french_build",
-                                            "Netherlands_build", "Engine.HP")]
+                                            "Netherlands_build", "Engine.HP", "Style_Wagon")]
 
 # create glm model
 glm_model <- lm(log_MSRP~., glm_df)
 
 # view diagnostics
 #plot(glm_model)
+summary(glm_model)
 
-#summary(glm_model)
+#  cooksD <- cooks.distance(glm_model)
+#  influential <- cooksD[(cooksD > (3 * mean(cooksD, na.rm = TRUE)))]
+# influential
+# # 
+#  names_of_influential <- names(influential)
+#  outliers <- glm_df[names_of_influential,]
+#  glm_without_outliers <- glm_df %>% anti_join(outliers)
+#  
+#  glm_model_2 <- lm(log_MSRP~., glm_without_outliers)
+#  
+#  plot(glm_model_2)
+# # ols_plot_diagnostics(glm_model_2)
+#  summary(glm_model_2)
 
-# cooksD <- cooks.distance(glm_model)
-# influential <- cooksD[(cooksD > (3 * mean(cooksD, na.rm = TRUE)))]
-#influential
-
-# names_of_influential <- names(influential)
-# outliers <- glm_df[names_of_influential,]
-# glm_without_outliers <- glm_df %>% anti_join(outliers)
-# 
-# glm_model_2 <- lm(log_MSRP~., glm_without_outliers)
-# 
-# plot(glm_model_2)
-# ols_plot_diagnostics(glm_model_2)
-# summary(glm_model_2)
+par(mfrow=c(2,2))
+plot(glm_model)
 
 glm_prediction <- predict(glm_model, interval = "predict", newdata = validate_glm)
 
