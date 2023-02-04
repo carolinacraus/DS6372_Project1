@@ -28,6 +28,7 @@ library(GGally)
 library(leaps)
 library(tree)
 library(rpart)
+library(gridExtra)
 dataset <- read.csv("C:/Users/Joey/Desktop/applied-stats/datasets/data1.csv")
 
 #glimpse(dataset) # looking at the var types of each
@@ -80,8 +81,6 @@ dataset[3717:3720, 6] <- 0 # volkswagen e-golf
 dataset[5779:5781,6] <- 0 # mitsubishi i-miev
 dataset[8374,6] <- 0 # toyota rav4-ev
 dataset[8696:8715, 6] <- 0 # mazda rotary engine RX7 AND RX8
-
-
 
 ```
 
@@ -629,6 +628,17 @@ validate_slr <- validate[,-11]
 # linear regression model 
 car_model_fit <- lm(log_MSRP~Year+log(Engine.HP),training_slr)
 
+# k-fold cross validation (10 fold)
+set.seed(7)
+train_control<- trainControl(method = "cv", number = 10, repeats = 1)
+simple_kfold <- train(log_MSRP~Year+log(Engine.HP),
+                  data=training_slr,
+                  method = "lm", trControl = train_control,
+                  metric = "RMSE")
+
+# view k-fold performance
+# print(simple_kfold) 
+
 # variance inflation factor
 vif(car_model_fit)
 
@@ -664,6 +674,70 @@ cat("RMSE: ", pred_RMSE, "\nASE: ", ase, "\nR-Squared", rsqr, "\nAdj.R-Squared",
 ```
 
 
+<hr>
+<h4>LASSO Penalized Regression</h4>
+
+The following code chunk will run 5 fold cross validation as well as LASSO feature selection.
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+set.seed(7)
+
+training_glm <- training[,-11]
+validate_glm <-validate[,-11]
+
+lambda <- seq(0,.3, by = .01)
+fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+glmnet.fit2 <- train(log_MSRP~.,
+                    data = training_glm,
+                    method = "glmnet",
+                    trControl = fitControl2,
+                    tuneGrid = expand.grid(alpha = 1, lambda = lambda))
+
+
+glmnet.fit2
+plot(glmnet.fit2)
+#opt.pen2<- glmnet.fit2$finalModel$lambdaOpt
+#coef(glmnet.fit2$finalModel,opt.pen2)
+
+```
+
+
+
+
+
+<h3>GLMNET Selected Model</h3>
+Using the results from our LASSO model we will use the suggested features to create a new regression model:
+```{r, message=FALSE, warning=FALSE, fig.align='center'}
+set.seed(7)
+# remove features not selected by LASSO 
+glm_df <- training_glm[,!names(training_glm) %in% c("Engine.Cylinders12","Engine.Cylinders16","Style_Sedan",
+                                            "nat_fuel_intake","electric_intake","french_build",
+                                            "Netherlands_build", "Engine.HP", "Style_Wagon")]
+
+# create glm model
+glm_model <- lm(log_MSRP~., glm_df)
+
+# view diagnostics
+par(mfrow=c(2,2))
+plot(glm_model)
+
+glm_prediction <- predict(glm_model, interval = "predict", newdata = validate_glm)
+
+pred_RMSE <- sqrt(mean((glm_prediction[,1] - validate_glm$log_MSRP)^2))
+
+summary(glm_model)
+
+ASE_func <- function(error){mean(error^2)}
+ase <- ASE_func(glm_model$residuals)
+bic <- BIC(glm_model)
+rsqr <- summary(glm_model)$r.squared
+adj_rsqr<- summary(glm_model)$adj.r.squared
+
+cat("RMSE: ", pred_RMSE, "\nASE: ", ase, "\nR-Squared", rsqr, "\nAdj.R-Squared", adj_rsqr, "\nBIC", bic)
+
+```
+
+
+
 <h3>Testing for Differences in Categorical Variables</h3>
 Our easily interpretable model above doesn't include categorical variables due to not understanding if 
 the levels within certain variables are different or the same. 
@@ -681,22 +755,41 @@ We reject the null hypothesis. There is sufficient evidence at a significance le
 Visualizing Slopes For Various Categorical Variables
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
 
-backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Vehicle.Style))+
-  geom_point(show.legend = FALSE)+
-  geom_smooth(method = 'lm')
 
-backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Vehicle.Size))+
+hp_style<-backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Vehicle.Style))+
+  geom_point(show.legend = FALSE)+
+  geom_smooth(method = 'lm', show.legend = F) +
+  ggtitle("Slopes For Vehicle Style Categories")+
+  xlab('Log Engine Horse Power')+
+  ylab('Log MSRP')
+
+hp_size<- backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Vehicle.Size))+
   geom_point(show.legend = F)+
-  geom_smooth(method = 'lm', show.legend = F)
+  geom_smooth(method = 'lm', show.legend = F)+
+  ggtitle("Slopes For Vehicle Size Categories")+
+  xlab('Log Engine Horse Power')+
+  ylab('Log MSRP')
 
-backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Make))+
+hp_make<- backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Make))+
   geom_point(show.legend = FALSE)+
-  geom_smooth(method = 'lm', show.legend = F)
+  geom_smooth(method = 'lm', show.legend = F)+
+  ggtitle("Slopes For Different Vehicle Makes")+
+  xlab('Log Engine Horse Power')+
+  ylab('Log MSRP')
 
-backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Engine.Cylinders))+
+hp_cylinder <- backup_df %>% ggplot(aes(log_Engine.HP, log_MSRP, color = Engine.Cylinders))+
   geom_point(show.legend = FALSE)+
-  geom_smooth(method = 'lm', show.legend = F)
+  geom_smooth(method = 'lm', show.legend = F)+
+  ggtitle("Slopes For Different Engine Cylinders")+
+  xlab('Log Engine Horse Power')+
+  ylab('Log MSRP')
 
+
+gridExtra::grid.arrange(hp_style,
+                        hp_size,
+                        hp_make,
+                        hp_cylinder,
+                        ncol = 2)
 
 ```
 
@@ -732,10 +825,29 @@ complex_fit <- lm(log_MSRP~
                     log(Engine.HP)*Vehicle.Style,
                   training_b) # note not using training
 
+# view coef. etc:
 #summary(complex_fit)
+
+# create 2x2 grid for plots
 par(mfrow = c(2,2))
+# diagnostics check
 plot(complex_fit)
-#ols_plot_diagnostics(complex_fit)
+
+#set seed for reprodu. outcome
+set.seed(7)
+# set crossvalidation parameters (non-repeating)
+train_control<- trainControl(method = "cv", number = 10, repeats = 1)
+
+# execute the k-fold cv based on RMSE as key metric
+complex_kfold <- train(log_MSRP~ Year+
+                    log_Engine.HP*Engine.Cylinders+
+                    log(Engine.HP)*Make+
+                    log(Engine.HP)*Vehicle.Style,
+                  data=training_b,
+                  method = "lm", trControl = train_control,
+                  metric = "RMSE")
+# view results
+#print(complex_kfold)
 
 complex_pred <- predict(complex_fit, interval = "predict", newdata = validate_b)
 
@@ -753,81 +865,7 @@ cat("RMSE: ", complex_RMSE, "\nASE: ", ase, "\nR-Squared:", rsqr, "\nAdj.R-Squar
 
 
 
-<hr>
-<h4>Feature Selection & 5-Fold Cross Validation</h4>
 
-The following code chunk will run 5 fold cross validation as well as LASSO feature selection.
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-set.seed(7)
-
-training_glm <- training[,-11]
-validate_glm <-validate[,-11]
-
-lambda <- seq(0,.3, by = .01)
-fitControl2 <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
-glmnet.fit2 <- train(log_MSRP~.,
-                    data = training_glm,
-                    method = "glmnet",
-                    trControl = fitControl2,
-                    tuneGrid = expand.grid(alpha = 1, lambda = lambda))
-
-
-glmnet.fit2
-plot(glmnet.fit2)
-#opt.pen2<- glmnet.fit2$finalModel$lambdaOpt
-#coef(glmnet.fit2$finalModel,opt.pen2)
-
-```
-
-
-
-
-
-<h3>GLMNET Selected Model</h3>
-Using the results from our LASSO model we will use the suggested features to create a new regression model:
-```{r, message=FALSE, warning=FALSE, fig.align='center'}
-# remove features not selected by LASSO 
-glm_df <- training_glm[,!names(training_glm) %in% c("Engine.Cylinders12","Engine.Cylinders16","Style_Sedan",
-                                            "nat_fuel_intake","electric_intake","french_build",
-                                            "Netherlands_build", "Engine.HP", "Style_Wagon")]
-
-# create glm model
-glm_model <- lm(log_MSRP~., glm_df)
-
-# view diagnostics
-#plot(glm_model)
-summary(glm_model)
-
-#  cooksD <- cooks.distance(glm_model)
-#  influential <- cooksD[(cooksD > (3 * mean(cooksD, na.rm = TRUE)))]
-# influential
-# # 
-#  names_of_influential <- names(influential)
-#  outliers <- glm_df[names_of_influential,]
-#  glm_without_outliers <- glm_df %>% anti_join(outliers)
-#  
-#  glm_model_2 <- lm(log_MSRP~., glm_without_outliers)
-#  
-#  plot(glm_model_2)
-# # ols_plot_diagnostics(glm_model_2)
-#  summary(glm_model_2)
-
-par(mfrow=c(2,2))
-plot(glm_model)
-
-glm_prediction <- predict(glm_model, interval = "predict", newdata = validate_glm)
-
-pred_RMSE <- sqrt(mean((glm_prediction[,1] - validate_glm$log_MSRP)^2))
-
-ASE_func <- function(error){mean(error^2)}
-ase <- ASE_func(glm_model$residuals)
-bic <- BIC(glm_model)
-rsqr <- summary(glm_model)$r.squared
-adj_rsqr<- summary(glm_model)$adj.r.squared
-
-cat("RMSE: ", pred_RMSE, "\nASE: ", ase, "\nR-Squared", rsqr, "\nAdj.R-Squared", adj_rsqr, "\nBIC", bic)
-
-```
 
 
 
@@ -841,6 +879,18 @@ np_train <- car_train[,-c(1,3,5:7,9:11,15)]
 np_test <- car_test[,-c(1,3,5:7,9:11,15)]
 np_valid <- car_valid[,-c(1,3,5:7,9:11,15)]
 
+#set seed for reprodu. outcome
+set.seed(7)
+# set crossvalidation parameters (non-repeating)
+train_control<- trainControl(method = "cv", number = 10, repeats = 1)
+
+# execute the k-fold cv based on RMSE as key metric
+knn_cv <- train(log_MSRP~.,
+                  data=np_train,
+                  method = "knn", trControl = train_control,
+                  metric = "RMSE")
+
+knn_cv
 # np_train <- training_b[,-c(1,3,5:7,9:11,15)]
 # np_test <- validate_b[,-c(1,3,5:7,9:11,15)]
 
@@ -867,6 +917,7 @@ cat("MSE: ", mse, "\nMAE: ", mae, "\nRMSE: ", rmse)
 
 <h3>Non-Parametric | KNN Regression Validation</h3>
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
+set.seed(7)
 # training data split into input and output
 train_x = np_train[,!colnames(np_train)== "log_MSRP"]
 train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
@@ -881,9 +932,9 @@ pred_y = predict(knn_reg_valid,test_x)
 
 
 
-mse = mean((test_y - pred_y_knn)^2)
-mae = MAE(test_y, pred_y_knn)
-rmse = RMSE(test_y, pred_y_knn)
+mse = mean((test_y - pred_y)^2)
+mae = MAE(test_y, pred_y)
+rmse = RMSE(test_y, pred_y)
 cat("MSE: ", mse, "\nMAE: ", mae, "\nRMSE: ", rmse)
 
 ```
@@ -891,6 +942,8 @@ cat("MSE: ", mse, "\nMAE: ", mae, "\nRMSE: ", rmse)
 
 <h3>Non-Parametric | Regression Tree</h3>
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
+np_train<- np_train[,-2]
+np_valid <- np_valid[,-2]
 par(mfrow= c(2,2))
 # tree
 tree= rpart::rpart(log_MSRP~.,data = np_train, method = "anova")
@@ -901,6 +954,13 @@ plot(tree, uniform = TRUE,
      main = "classifcation tree for MSRP")
 text(tree, use.n = TRUE, all = TRUE, cex=.8)
 
+# tree Cross validation
+k <- 10
+set.seed(7)
+cv_tree <- train(log_MSRP~., data = np_train, method = 'rpart',
+                 trControl = trainControl(method = 'cv', number = k))
+
+print(cv_tree)
 # prediction
 pred_y = predict(tree, test_x)
 plot(pred_y, test_y)
@@ -929,6 +989,8 @@ legend("topright", legend = c("Log-MSRP", "predicted-MSRP"),
 
 <h3>Non-Parametric | Regression Tree Validation</h3>
 ```{r, message=FALSE, warning=FALSE, fig.align='center'}
+library(rpart.plot)
+set.seed(7)
 # training data split into input and output
 train_x = np_train[,!colnames(np_train)== "log_MSRP"]
 train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
@@ -937,21 +999,26 @@ train_y = as.numeric(unlist(np_train[,colnames(np_train)=="log_MSRP"]))
 test_x = np_valid[,!colnames(np_valid) == "log_MSRP"]
 test_y = as.numeric(unlist(np_valid[,colnames(np_valid)=="log_MSRP"]))
 
-par(mfrow= c(2,2))
+#par(mfrow= c(2,2))
 # tree
 tree= rpart::rpart(log_MSRP~.,data = np_train, method = "anova")
-rpart::printcp(tree)
-rpart::plotcp(tree)
-summary(tree)
-plot(tree, uniform = TRUE,
-     main = "classifcation tree for MSRP")
-text(tree, use.n = TRUE, all = TRUE, cex=.8)
+#rpart::printcp(tree) # errors and CP 
+#rpart::plotcp(tree) # complexity parameter table 
+prune_tree <- prune(tree, cp = .01)
+# summary (prune_tree)
+#summary(tree)
+# plot(prune_tree, uniform = T)
+# text(prune_tree,uniform=T, all = T, cex = .8)
+# plot(tree, uniform = TRUE)
+# text(tree, use.n = TRUE, all = TRUE, cex=.8)
+
+rpart.plot(prune_tree) # pruned tree
 
 # prediction
 pred_y = predict(tree, test_x)
 plot(pred_y, test_y)
 abline(0,1)
-#sqrt(mean((pred_y - test_y)^2)) RMSE
+#sqrt(mean((pred_y - test_y)^2)) #RMSE
 #print(data.frame(test_y,pred_y))
 
 
